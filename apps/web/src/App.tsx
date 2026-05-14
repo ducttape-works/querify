@@ -3,6 +3,12 @@ import type { Database } from "sql.js";
 import "./App.css";
 
 import { fetchEngines } from "./services/api";
+import {
+  getPersistedEngineName,
+  getPersistedQuery,
+  persistEngineName,
+  persistQuery,
+} from "./services/persistence";
 import { createSqliteDb, formatCell, getTables } from "./services/sqlite";
 import { queries } from "./sql/sqlite";
 import type { Engine } from "./types/api";
@@ -11,7 +17,9 @@ import type { CellValue, QueryResultState } from "./types/sqlite";
 export default function App() {
   const [engines, setEngines] = useState<Engine[]>([]);
   const [activeEngine, setActiveEngine] = useState<Engine | null>(null);
-  const [query, setQuery] = useState<string>(queries.default);
+  const [query, setQuery] = useState<string>(
+    () => getPersistedQuery() ?? queries.default,
+  );
   const [tables, setTables] = useState<string[]>([]);
   const [db, setDb] = useState<Database | null>(null);
   const [result, setResult] = useState<QueryResultState | null>(null);
@@ -21,14 +29,16 @@ export default function App() {
 
   useEffect(() => {
     fetchEngines()
-      .then((data) => {
-        setEngines(data);
+      .then(({ engines }) => {
+        setEngines(engines);
+        const persistedEngineName = getPersistedEngineName();
+
         setActiveEngine(
-          data.find((engine) => engine.is_default) ?? data[0] ?? null,
+          engines.find((engine) => engine.name === persistedEngineName) ??
+            engines.find((engine) => engine.is_default) ??
+            engines[0] ??
+            null,
         );
-      })
-      .catch(() => {
-        setError("Failed to load engines from the backend.");
       })
       .finally(() => {
         setLoadingEngines(false);
@@ -45,6 +55,15 @@ export default function App() {
         setLoadingDb(false);
       });
   }, []);
+
+  useEffect(() => {
+    persistQuery(query);
+  }, [query]);
+
+  useEffect(() => {
+    if (!activeEngine) return;
+    persistEngineName(activeEngine.name);
+  }, [activeEngine]);
 
   const runQuery = () => {
     if (!db || activeEngine?.name !== "sqlite") return;
