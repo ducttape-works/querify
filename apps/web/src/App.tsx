@@ -1,13 +1,26 @@
+import { useEffect, useRef, useState } from "react";
 import "./App.css";
 
-// @Oluwatunmise-olat replace with backend data once ready
+import type { Engine } from "./types/api";
+import { fetchEngines } from "./services/api";
+
 const SCHEMA_TABLES = ["users", "orders", "products", "reviews", "categories"];
 
 export default function App() {
+  const [engines, setEngines] = useState<Engine[]>([]);
+  const [activeEngine, setActiveEngine] = useState<Engine | null>(null);
+
+  useEffect(() => {
+    fetchEngines().then((data) => {
+      setEngines(data);
+      setActiveEngine(data.find((e) => e.is_default) ?? data[0] ?? null);
+    });
+  }, []);
+
   return (
-    <div style={styles.root}>
-      <Topbar />
-      <div style={styles.body}>
+    <div className="layout">
+      <Topbar engines={engines} active={activeEngine} onChange={setActiveEngine} />
+      <div className="body">
         <Sidebar />
         <EditorPane />
         <OutputPane />
@@ -16,42 +29,93 @@ export default function App() {
   );
 }
 
-function Topbar() {
+function Topbar({
+  engines,
+  active,
+  onChange,
+}: {
+  engines: Engine[];
+  active: Engine | null;
+  onChange: (e: Engine) => void;
+}) {
   return (
-    <header style={styles.topbar}>
-      <div style={styles.topbarLeft}>
-        <span style={styles.logo}>Querify</span>
-        <div style={styles.engineBadge}>
-          <span style={{ ...styles.engineDot, background: "#336791" }} />
-          <span style={styles.engineLabel}>PostgreSQL</span>
-          <span style={styles.chevron}>▾</span>
-        </div>
-        <div style={styles.datasetBadge}>
+    <header className="topbar">
+      <div className="topbar-left">
+        <span className="logo">Querify</span>
+
+        <EnginePicker engines={engines} active={active} onChange={onChange} />
+
+        <div className="badge badge-muted">
           interview-prep
-          <span style={styles.chevron}>▾</span>
+          <span className="chevron">▾</span>
         </div>
       </div>
-      <div style={styles.topbarRight}>
-        <button style={styles.runBtn}>
-          Run
-          <kbd style={styles.kbd}>⌘↵</kbd>
+
+      <div className="topbar-right">
+        <button className="run-btn">
+          Run <kbd>⌘↵</kbd>
         </button>
       </div>
     </header>
   );
 }
 
+function EnginePicker({
+  engines,
+  active,
+  onChange,
+}: {
+  engines: Engine[];
+  active: Engine | null;
+  onChange: (e: Engine) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const close = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, []);
+
+  return (
+    <div className="engine-picker" ref={ref}>
+      <button className="badge" onClick={() => setOpen((v) => !v)}>
+        <span className="engine-dot" style={{ background: active?.color ?? "#aaa" }} />
+        <span>{active?.name ?? "loading..."}</span>
+        <span className="chevron" style={{ rotate: open ? "180deg" : "0deg" }}>▾</span>
+      </button>
+
+      {open && (
+        <div className="engine-dropdown">
+          {engines.map((eng) => (
+            <button
+              key={eng.name}
+              className={`engine-option${eng.name === active?.name ? " selected" : ""}`}
+              onClick={() => { onChange(eng); setOpen(false); }}
+            >
+              <span className="engine-dot" style={{ background: eng.color }} />
+              {eng.name}
+              {eng.name === active?.name && <span className="engine-check">✓</span>}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Sidebar() {
   return (
-    <aside style={styles.sidebar}>
-      <div style={styles.sidebarHeader}>Schema</div>
-      <ul style={styles.tableList}>
+    <aside className="sidebar">
+      <div className="sidebar-header">Schema</div>
+      <ul className="table-list">
         {SCHEMA_TABLES.map((table) => (
-          <li key={table} style={styles.tableItem}>
-            <span style={styles.tableIcon}>▤</span>
-            <span style={{ fontFamily: "var(--mono)", fontSize: 12 }}>
-              {table}
-            </span>
+          <li key={table} className="table-item">
+            <span className="table-icon">▤</span>
+            {table}
           </li>
         ))}
       </ul>
@@ -61,13 +125,12 @@ function Sidebar() {
 
 function EditorPane() {
   return (
-    <div style={styles.editorPane}>
-      <div style={styles.paneHeader}>
-        <span style={styles.paneTab}>query.sql</span>
+    <div className="editor-pane">
+      <div className="pane-header">
+        <span className="pane-tab active">query.sql</span>
       </div>
-      <div style={styles.editorArea}>
-        <pre style={styles.editorPlaceholder}>{`-- Monaco editor loads here
-SELECT * FROM users LIMIT 10;`}</pre>
+      <div className="editor-area">
+        <pre>{`-- Monaco editor loads here\nSELECT * FROM users LIMIT 10;`}</pre>
       </div>
     </div>
   );
@@ -75,235 +138,15 @@ SELECT * FROM users LIMIT 10;`}</pre>
 
 function OutputPane() {
   return (
-    <div style={styles.outputPane}>
-      <div style={styles.paneHeader}>
-        <span style={styles.paneTab}>Results</span>
-        <span
-          style={{
-            ...styles.paneTab,
-            color: "var(--text-muted)",
-            fontWeight: 400,
-          }}
-        >
-          Visualizer
-        </span>
-        <span
-          style={{
-            ...styles.paneTab,
-            color: "var(--text-muted)",
-            fontWeight: 400,
-          }}
-        >
-          Concepts
-        </span>
+    <div className="output-pane">
+      <div className="pane-header">
+        <span className="pane-tab active">Results</span>
+        <span className="pane-tab inactive">Visualizer</span>
+        <span className="pane-tab inactive">Concepts</span>
       </div>
-      <div style={styles.emptyOutput}>
-        <span style={styles.emptyText}>Run a query to see results</span>
+      <div className="empty-output">
+        <span>Run a query to see results</span>
       </div>
     </div>
   );
 }
-
-const styles: Record<string, React.CSSProperties> = {
-  root: {
-    height: "100%",
-    display: "flex",
-    flexDirection: "column",
-    background: "var(--bg)",
-  },
-
-  topbar: {
-    height: 48,
-    minHeight: 48,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: "0 16px",
-    background: "var(--surface)",
-    borderBottom: "1px solid var(--border)",
-  },
-  topbarLeft: {
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-  },
-  topbarRight: {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-  },
-  logo: {
-    fontWeight: 600,
-    fontSize: 15,
-    letterSpacing: "-0.02em",
-    color: "var(--text)",
-    marginRight: 4,
-  },
-  engineBadge: {
-    display: "flex",
-    alignItems: "center",
-    gap: 6,
-    padding: "4px 10px",
-    background: "var(--surface-2)",
-    border: "1px solid var(--border)",
-    borderRadius: 6,
-    fontSize: 13,
-    cursor: "pointer",
-    fontFamily: "var(--mono)",
-  },
-  engineDot: {
-    width: 8,
-    height: 8,
-    borderRadius: "50%",
-    display: "inline-block",
-  },
-  engineLabel: {
-    color: "var(--text)",
-  },
-  datasetBadge: {
-    display: "flex",
-    alignItems: "center",
-    gap: 6,
-    padding: "4px 10px",
-    background: "var(--surface-2)",
-    border: "1px solid var(--border)",
-    borderRadius: 6,
-    fontSize: 13,
-    cursor: "pointer",
-    color: "var(--text-muted)",
-  },
-  chevron: {
-    fontSize: 10,
-    color: "var(--text-muted)",
-  },
-  runBtn: {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    padding: "6px 14px",
-    background: "var(--accent)",
-    color: "var(--accent-text)",
-    border: "none",
-    borderRadius: 6,
-    fontSize: 13,
-    fontWeight: 500,
-    cursor: "pointer",
-    fontFamily: "var(--sans)",
-  },
-  kbd: {
-    fontSize: 11,
-    fontFamily: "var(--mono)",
-    opacity: 0.7,
-    background: "transparent",
-    border: "none",
-    color: "inherit",
-  },
-
-  body: {
-    flex: 1,
-    display: "flex",
-    overflow: "hidden",
-  },
-
-  sidebar: {
-    width: 220,
-    minWidth: 220,
-    background: "var(--surface-2)",
-    borderRight: "1px solid var(--border)",
-    display: "flex",
-    flexDirection: "column",
-    overflow: "hidden",
-  },
-  sidebarHeader: {
-    padding: "10px 14px",
-    fontSize: 11,
-    fontWeight: 600,
-    letterSpacing: "0.06em",
-    textTransform: "uppercase",
-    color: "var(--text-muted)",
-    borderBottom: "1px dashed var(--border)",
-  },
-  tableList: {
-    listStyle: "none",
-    overflowY: "auto",
-  },
-  tableItem: {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    padding: "8px 14px",
-    borderBottom: "1px dashed var(--border)",
-    cursor: "pointer",
-    color: "var(--text)",
-    fontSize: 13,
-  },
-  tableIcon: {
-    color: "var(--text-muted)",
-    fontSize: 12,
-  },
-
-  editorPane: {
-    flex: 1,
-    display: "flex",
-    flexDirection: "column",
-    borderRight: "1px solid var(--border)",
-    overflow: "hidden",
-  },
-  outputPane: {
-    flex: 1,
-    display: "flex",
-    flexDirection: "column",
-    overflow: "hidden",
-  },
-  paneHeader: {
-    display: "flex",
-    alignItems: "center",
-    gap: 2,
-    padding: "0 12px",
-    height: 36,
-    minHeight: 36,
-    background: "var(--surface)",
-    borderBottom: "1px solid var(--border)",
-  },
-  paneTab: {
-    padding: "0 8px",
-    height: "100%",
-    display: "flex",
-    alignItems: "center",
-    fontSize: 12,
-    fontWeight: 500,
-    color: "var(--text)",
-    cursor: "pointer",
-    fontFamily: "var(--mono)",
-  },
-  editorArea: {
-    flex: 1,
-    background: "var(--surface)",
-    overflow: "auto",
-    padding: 16,
-  },
-  editorPlaceholder: {
-    fontFamily: "var(--mono)",
-    fontSize: 13,
-    lineHeight: 1.6,
-    color: "var(--text-muted)",
-  },
-  emptyOutput: {
-    flex: 1,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    background: "var(--surface)",
-    backgroundImage:
-      "repeating-linear-gradient(135deg, var(--border) 0px, var(--border) 1px, transparent 1px, transparent 12px)",
-    backgroundSize: "12px 12px",
-  },
-  emptyText: {
-    fontSize: 13,
-    color: "var(--text-muted)",
-    background: "var(--surface)",
-    padding: "6px 14px",
-    borderRadius: 6,
-    border: "1px solid var(--border)",
-  },
-};

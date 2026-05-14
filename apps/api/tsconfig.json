@@ -1,15 +1,30 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "rootDir": "src",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "rootDir": ".",
     "outDir": "dist",
+    "baseUrl": ".",
+    "paths": {
+      "@common/*": ["common/*"],
+      "@common/types/*": ["common/types/*"],
+      "@common/const/*": ["common/const/*"],
+      "@common/utils/*": ["common/utils/*"],
+      "@configs/*": ["configs/*"],
+      "@modules/*": ["modules/*"]
+    },
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "strict": true,
+    "noImplicitAny": false,
     "skipLibCheck": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
   },
-  "include": ["src"]
+  "include": ["."],
+  "exclude": ["node_modules", "dist"]
 }
