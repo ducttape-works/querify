@@ -9,6 +9,7 @@ import {
   globalErrorHandler,
   routeNotFoundHandler,
 } from "./common/routes/others";
+import { bootstrap } from "./bootstrap";
 
 @singleton()
 export default class Application {
@@ -18,6 +19,7 @@ export default class Application {
   constructor() {
     this.app = express();
     this.registerMiddlewares();
+    bootstrap();
   }
 
   public async startUp(port: number) {

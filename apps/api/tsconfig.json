@@ -12,7 +12,10 @@
       "@common/const/*": ["common/const/*"],
       "@common/utils/*": ["common/utils/*"],
       "@configs/*": ["configs/*"],
-      "@modules/*": ["modules/*"]
+      "@modules/*": ["modules/*"],
+      "@db/*": ["db/*"],
+      "@models/*": ["models/*"],
+      "@repositories/*": ["repositories/*"]
     },
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,

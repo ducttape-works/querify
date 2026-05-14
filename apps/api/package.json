@@ -4,11 +4,18 @@
   "scripts": {
     "dev": "nodemon index.ts",
     "build": "tsc && tsc-alias",
-    "start": "node -r tsconfig-paths/register dist/index.js"
+    "start": "node -r tsconfig-paths/register dist/index.js",
+    "db:migrate": "ts-node -r tsconfig-paths/register node_modules/knex/bin/cli.js migrate:latest",
+    "db:rollback": "ts-node -r tsconfig-paths/register node_modules/knex/bin/cli.js migrate:rollback",
+    "db:make": "ts-node -r tsconfig-paths/register node_modules/knex/bin/cli.js migrate:make"
   },
   "license": "ISC",
   "packageManager": "pnpm@10.33.4",
+  "pnpm": {
+    "onlyBuiltDependencies": ["better-sqlite3"]
+  },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "^22.0.0",
@@ -18,12 +25,17 @@
     "typescript": "~5.7.0"
   },
   "dependencies": {
+    "better-sqlite3": "^12.10.0",
     "cors": "^2.8.6",
+    "dayjs": "^1.11.20",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "express-async-errors": "^3.1.1",
     "http-status-codes": "^2.3.0",
+    "knex": "^3.2.10",
+    "objection": "^3.1.5",
     "reflect-metadata": "^0.2.2",
-    "tsyringe": "^4.10.0"
+    "tsyringe": "^4.10.0",
+    "ulid": "^3.0.2"
   }
 }

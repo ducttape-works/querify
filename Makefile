@@ -1,4 +1,4 @@
-.PHONY: install dev dev-web dev-api build clean
+.PHONY: install dev dev-web dev-api build clean db-migrate db-rollback db-make
 
 install:
 	cd apps/web && pnpm install
@@ -19,3 +19,12 @@ build:
 
 clean:
 	rm -rf apps/web/dist apps/api/dist
+
+db-migrate:
+	cd apps/api && pnpm db:migrate
+
+db-rollback:
+	cd apps/api && pnpm db:rollback
+
+db-make:
+	cd apps/api && pnpm db:make $(name)
