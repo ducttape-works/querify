@@ -21,10 +21,10 @@ export default class Application {
   constructor() {
     this.app = express();
     this.registerMiddlewares();
-    bootstrap();
   }
 
   public async startUp(port: number) {
+    await bootstrap();
     this._instance_ = this.app.listen(port);
   }
 

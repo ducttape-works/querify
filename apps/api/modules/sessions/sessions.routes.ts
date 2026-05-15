@@ -17,4 +17,6 @@ export const sessionsRoutes = (server: AppServer, prefix: string) => {
     createSessionRateLimitInterceptor,
     controller.createSession,
   );
+
+  server.get(`${prefix}/sessions/:id`, controller.getSessionById);
 };

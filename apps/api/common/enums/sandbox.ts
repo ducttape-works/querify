@@ -5,3 +5,8 @@ export enum SandboxStatus {
   STOPPED = "stopped",
   ERROR = "error",
 }
+
+export enum SandboxProvider {
+  DOCKER = "docker",
+  FIRECRACKER = "firecracker",
+}

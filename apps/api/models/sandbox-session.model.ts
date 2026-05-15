@@ -3,7 +3,7 @@ import { injectable } from "tsyringe";
 
 import BaseModel from "./base.model";
 import { User } from "./user.model";
-import { SandboxStatus } from "@common/enums/sandbox";
+import { SandboxProvider, SandboxStatus } from "@common/enums/sandbox";
 
 @injectable()
 export class SandboxSession extends BaseModel {
@@ -13,6 +13,12 @@ export class SandboxSession extends BaseModel {
   engine!: string;
   status!: SandboxStatus;
   instance_id!: string | null;
+  provider!: SandboxProvider | null;
+  host!: string | null;
+  port!: number | null;
+  database!: string | null;
+  username!: string | null;
+  password_ciphertext!: string | null;
   ended_at!: string | null;
 
   user!: User;

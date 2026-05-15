@@ -17,4 +17,12 @@ export class SandboxSessionRepository extends BaseRepository<SandboxSessionModel
       .whereNull("deleted_at")
       .first();
   }
+
+  public async getByIdForUser(id: string, user_id: string) {
+    return await this.model
+      .query()
+      .where({ id, user_id })
+      .whereNull("deleted_at")
+      .first();
+  }
 }

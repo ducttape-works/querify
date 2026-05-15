@@ -21,4 +21,17 @@ export class SessionsController {
       statusCode: StatusCodes.OK,
     });
   };
+
+  getSessionById = async (request: Request, response: Response) => {
+    const data = await this.sessionService.getSessionById(
+      request.params.id as string,
+      request.anonymousId ?? "",
+    );
+
+    return genericResponse({
+      response,
+      data,
+      statusCode: StatusCodes.OK,
+    });
+  };
 }

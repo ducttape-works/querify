@@ -1,5 +1,11 @@
-import { dbConnect } from "./db/connector";
+import { container } from "tsyringe";
 
-export const bootstrap = () => {
+import { dbConnect } from "./db/connector";
+import { SandboxBootstrapService } from "@modules/sandbox/bootstrap.service";
+import { SessionsWorker } from "@modules/sessions/sessions.worker";
+
+export const bootstrap = async () => {
   dbConnect();
+  await container.resolve(SandboxBootstrapService).initialize();
+  container.resolve(SessionsWorker).start();
 };
