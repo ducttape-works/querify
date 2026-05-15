@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { singleton } from "tsyringe";
+import { container, singleton } from "tsyringe";
 import express from "express";
 import cors from "cors";
 import http from "http";
@@ -12,6 +12,7 @@ import {
 } from "./common/routes/others";
 import { cookieInterceptor } from "./common/interceptors/cookie.interceptor";
 import { bootstrap } from "./bootstrap";
+import { DockerSandboxProvider } from "@modules/sandbox/providers/docker";
 
 @singleton()
 export default class Application {
@@ -30,6 +31,7 @@ export default class Application {
 
   public async shutDown() {
     if (this._instance_) await this._instance_.close();
+    await container.resolve(DockerSandboxProvider).pruneManagedContainers();
   }
 
   private registerMiddlewares() {

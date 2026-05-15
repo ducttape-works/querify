@@ -19,6 +19,8 @@ const execFileAsync = promisify(execFile);
 
 @injectable()
 export class DockerSandboxProvider implements SandboxProvider {
+  private readonly _internalLabel = "querify.managed=true";
+
   public async up(payload: SandboxProvisionInput): Promise<SandboxRuntime> {
     const baseConfig = sandboxEngineConfigMap[payload.engine];
 
@@ -78,6 +80,21 @@ export class DockerSandboxProvider implements SandboxProvider {
 
   public async down(instanceId: string): Promise<void> {
     await this.executeCommand(["rm", "-f", instanceId]);
+  }
+
+  public async pruneManagedContainers(): Promise<void> {
+    const { stdout } = await this.executeCommand([
+      "ps",
+      "-aq",
+      "--filter",
+      `label=${this._internalLabel}`,
+    ]);
+
+    const containerIds = stdout.trim();
+
+    if (!containerIds) return;
+
+    await this.executeCommand(["rm", "-f", ...containerIds.split("\n")]);
   }
 
   private async getAvailablePort() {
@@ -141,6 +158,8 @@ export class DockerSandboxProvider implements SandboxProvider {
       "-d",
       "--name",
       containerName,
+      "--label",
+      this._internalLabel,
       "--memory",
       config.memory,
       "--cpus",
