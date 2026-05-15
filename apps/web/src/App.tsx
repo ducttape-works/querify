@@ -2,7 +2,11 @@ import { useEffect, useState } from "react";
 import type { Database } from "sql.js";
 import "./App.css";
 
-import { fetchEngines } from "./services/api";
+import {
+  createSession,
+  fetchEngines,
+  getSessionEventsUrl,
+} from "./services/api";
 import {
   getPersistedEngineName,
   getPersistedQuery,
@@ -11,12 +15,13 @@ import {
 } from "./services/persistence";
 import { createSqliteDb, formatCell, getTables } from "./services/sqlite";
 import { queries } from "./sql/sqlite";
-import type { Engine } from "./types/api";
+import type { Engine, Session } from "./types/api";
 import type { CellValue, QueryResultState } from "./types/sqlite";
 
 export default function App() {
   const [engines, setEngines] = useState<Engine[]>([]);
   const [activeEngine, setActiveEngine] = useState<Engine | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [query, setQuery] = useState<string>(
     () => getPersistedQuery() ?? queries.default,
   );
@@ -26,19 +31,53 @@ export default function App() {
   const [error, setError] = useState("");
   const [loadingDb, setLoadingDb] = useState(true);
   const [loadingEngines, setLoadingEngines] = useState(true);
+  const [loadingSession, setLoadingSession] = useState(false);
+
+  const selectEngine = (engine: Engine | null) => {
+    setActiveEngine(engine);
+    setSession(null);
+    setError("");
+    setResult(null);
+
+    if (!engine) {
+      setLoadingSession(false);
+      return;
+    }
+
+    persistEngineName(engine.name);
+
+    if (engine.name === "sqlite") {
+      setLoadingSession(false);
+      return;
+    }
+
+    setLoadingSession(true);
+
+    createSession(engine.name)
+      .then((nextSession) => {
+        setSession(nextSession);
+      })
+      .catch((err) => {
+        setSession(null);
+        setError(err instanceof Error ? err.message : "Failed to create session");
+      })
+      .finally(() => {
+        setLoadingSession(false);
+      });
+  };
 
   useEffect(() => {
     fetchEngines()
       .then(({ engines }) => {
         setEngines(engines);
         const persistedEngineName = getPersistedEngineName();
-
-        setActiveEngine(
+        const initialEngine =
           engines.find((engine) => engine.name === persistedEngineName) ??
-            engines.find((engine) => engine.is_default) ??
-            engines[0] ??
-            null,
-        );
+          engines.find((engine) => engine.is_default) ??
+          engines[0] ??
+          null;
+
+        selectEngine(initialEngine);
       })
       .finally(() => {
         setLoadingEngines(false);
@@ -61,9 +100,33 @@ export default function App() {
   }, [query]);
 
   useEffect(() => {
-    if (!activeEngine) return;
-    persistEngineName(activeEngine.name);
-  }, [activeEngine]);
+    if (!session || session.status !== "spawning") return;
+
+    const source = new EventSource(getSessionEventsUrl(session.id), {
+      withCredentials: true,
+    });
+
+    source.addEventListener("session.ready", (event) => {
+      const nextSession = JSON.parse((event as MessageEvent).data) as Session;
+      setSession(nextSession);
+      source.close();
+    });
+
+    source.addEventListener("session.error", (event) => {
+      const nextSession = JSON.parse((event as MessageEvent).data) as Session;
+      setSession(nextSession);
+      setError(nextSession.message ?? "Sandbox session failed to start.");
+      source.close();
+    });
+
+    source.onerror = () => {
+      source.close();
+    };
+
+    return () => {
+      source.close();
+    };
+  }, [session]);
 
   const runQuery = () => {
     if (!db || activeEngine?.name !== "sqlite") return;
@@ -110,13 +173,11 @@ export default function App() {
             active={activeEngine}
             engines={engines}
             loading={loadingEngines}
-            onChange={(engine) => {
-              setActiveEngine(engine);
-              setError("");
-              setResult(null);
-            }}
+            onChange={selectEngine}
           />
-          <div className="badge badge-muted">browser sqlite</div>
+          <div className="badge badge-muted">
+            {activeEngine?.name === "sqlite" ? "browser sqlite" : "remote sandbox"}
+          </div>
         </div>
 
         <div className="topbar-right">
@@ -135,22 +196,26 @@ export default function App() {
       <div className="body">
         <aside className="sidebar">
           <div className="sidebar-header">Schema</div>
-          <ul className="table-list">
-            {tables.map((table) => (
-              <li key={table}>
-                <button
-                  className="table-item"
-                  onClick={() =>
-                    setQuery(`SELECT * FROM ${table} ORDER BY id;`)
-                  }
-                  type="button"
-                >
-                  <span className="table-icon">▤</span>
-                  {table}
-                </button>
-              </li>
-            ))}
-          </ul>
+          {activeEngine?.name === "sqlite" ? (
+            <ul className="table-list">
+              {tables.map((table) => (
+                <li key={table}>
+                  <button
+                    className="table-item"
+                    onClick={() =>
+                      setQuery(`SELECT * FROM ${table} ORDER BY id;`)
+                    }
+                    type="button"
+                  >
+                    <span className="table-icon">▤</span>
+                    {table}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="sidebar-empty">Remote schema will show up here later.</div>
+          )}
         </aside>
 
         <div className="editor-pane">
@@ -174,12 +239,22 @@ export default function App() {
 
             <div className="editor-footer">
               <span>
-                {loadingDb ? "Loading SQLite..." : "SQLite is ready."}
+                {activeEngine?.name === "sqlite"
+                  ? loadingDb
+                    ? "Loading SQLite..."
+                    : "SQLite is ready."
+                  : loadingSession
+                    ? "Creating remote session..."
+                    : session
+                      ? `Session ${session.status}.`
+                      : "Pick an engine to start a session."}
               </span>
               <span>
                 {activeEngine?.name === "sqlite"
                   ? "Ctrl/Cmd + Enter to run."
-                  : "Only sqlite runs here for now."}
+                  : session?.status === "ready"
+                    ? "Session is ready. Query execution is next."
+                    : "Session will start when you pick an engine."}
               </span>
             </div>
           </div>
@@ -190,13 +265,17 @@ export default function App() {
             <span className="pane-tab active">Results</span>
           </div>
 
-          {activeEngine && activeEngine.name !== "sqlite" && (
+          {error && <div className="output-message error-message">{error}</div>}
+
+          {!error && activeEngine?.name !== "sqlite" && (
             <div className="output-message">
-              Only sqlite is wired up in the browser right now.
+              {loadingSession && "Creating remote session..."}
+              {!loadingSession && session?.status === "spawning" && "Preparing sandbox session..."}
+              {!loadingSession && session?.status === "ready" && "Sandbox session is ready."}
+              {!loadingSession && session?.status === "error" && "Sandbox session failed to start."}
+              {!loadingSession && !session && "Remote session will appear here."}
             </div>
           )}
-
-          {error && <div className="output-message error-message">{error}</div>}
 
           {!error && activeEngine?.name === "sqlite" && !result && (
             <div className="empty-output">

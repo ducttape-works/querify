@@ -24,7 +24,18 @@ export class OrchestratorService {
         sessionId: _config.sid,
         engine: _engine,
       });
-    } catch {
+    } catch (error) {
+      console.error(
+        {
+          err: error,
+          sessionId: _config.sid,
+          engine: _engine,
+        },
+        "Failed to spawn sandbox instance",
+      );
+
+      if (error instanceof AppError) throw error;
+
       throw new AppError(
         "Failed to spawn sandbox instance.",
         StatusCodes.INTERNAL_SERVER_ERROR,

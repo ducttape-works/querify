@@ -19,4 +19,5 @@ export const sessionsRoutes = (server: AppServer, prefix: string) => {
   );
 
   server.get(`${prefix}/sessions/:id`, controller.getSessionById);
+  server.get(`${prefix}/sessions/:id/events`, controller.streamSessionEvents);
 };

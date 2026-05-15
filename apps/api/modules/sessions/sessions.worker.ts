@@ -32,8 +32,6 @@ export class SessionsWorker {
           { sid: event.data.sessionId },
         );
 
-        console.log("Runtime resukt ====>", { runtime, event });
-
         await this.sandboxSessionRepository.update(
           { id: event.data.sessionId },
           {
@@ -58,7 +56,16 @@ export class SessionsWorker {
             status: SandboxStatus.READY,
           },
         });
-      } catch {
+      } catch (error) {
+        console.error(
+          {
+            err: error,
+            sessionId: event.data.sessionId,
+            engine: event.data.engine,
+          },
+          "Failed to prepare sandbox session",
+        );
+
         await this.sandboxSessionRepository.update(
           { id: event.data.sessionId },
           {
@@ -72,7 +79,10 @@ export class SessionsWorker {
             sessionId: event.data.sessionId,
             engine: event.data.engine,
             status: SandboxStatus.ERROR,
-            message: "Failed to prepare sandbox session.",
+            message:
+              error instanceof Error
+                ? error.message
+                : "Failed to prepare sandbox session.",
           },
         });
       }

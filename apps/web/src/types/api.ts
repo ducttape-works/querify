@@ -11,3 +11,17 @@ export type Engine = {
   is_supported: boolean;
   is_default: boolean;
 };
+
+export type SessionStatus =
+  | "spawning"
+  | "ready"
+  | "running"
+  | "stopped"
+  | "error";
+
+export type Session = {
+  id: string;
+  engine: string;
+  status: SessionStatus;
+  message?: string;
+};

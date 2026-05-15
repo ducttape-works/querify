@@ -1,9 +1,10 @@
-import { NextFunction, Request, Response } from "express";
+import { NextFunction, Response } from "express";
 import { StatusCodes } from "http-status-codes";
 import { container } from "tsyringe";
 
 import { SlidingWindowRateLimiter } from "@common/implementations/sliding-window-rate-limiter";
 import type { SlidingWindowRateLimitConfig } from "@common/types/rate-limit";
+import type { AnonymousRequest } from "@common/types/request";
 import { errorResponse } from "@common/utils/http";
 
 export const createSlidingWindowRateLimitInterceptor = (
@@ -23,7 +24,7 @@ export const createSlidingWindowRateLimitInterceptor = (
 
   const rateLimiter = scopedContainer.resolve(SlidingWindowRateLimiter);
 
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: AnonymousRequest, res: Response, next: NextFunction) => {
     const rateLimitKey = req.anonymousId ?? req.ip ?? "anonymous";
 
     if (!rateLimiter.shouldPermit(rateLimitKey)) {

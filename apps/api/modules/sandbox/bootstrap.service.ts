@@ -18,6 +18,8 @@ export class SandboxBootstrapService {
     for (const image of images) {
       const existsLocally = await this.imageExists(image);
 
+      console.log("iMGAE EXISTS =====>", existsLocally);
+
       if (!existsLocally) {
         await this.pullImage(image);
       }

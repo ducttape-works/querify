@@ -1,13 +1,14 @@
-import { NextFunction, Request, Response } from "express";
+import { NextFunction, Response } from "express";
 import { ulid } from "ulid";
 
+import type { AnonymousRequest } from "@common/types/request";
 import { app } from "@configs/env";
 
 const COOKIE_NAME = "querify_utk";
 const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
 
 export const cookieInterceptor = async (
-  req: Request,
+  req: AnonymousRequest,
   res: Response,
   next: NextFunction,
 ) => {

@@ -1,6 +1,5 @@
 import { execFile } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { AddressInfo, createServer } from "node:net";
 import { promisify } from "node:util";
 import { injectable } from "tsyringe";
 import { StatusCodes } from "http-status-codes";
@@ -46,18 +45,17 @@ export class DockerSandboxProvider implements SandboxProvider {
     const containerName =
       `querify_${payload.engine}_${payload.sessionId}`.toLowerCase();
 
-    const hostPort = await this.getAvailablePort();
-
     await this.ensureImageExists(config.image);
 
     try {
-      const instanceId = await this.startContainer(
-        containerName,
-        hostPort,
-        config,
-      );
+      const instanceId = await this.startContainer(containerName, config);
 
       await this.waitUntilReady(instanceId, config);
+
+      const hostPort = await this.getMappedPort(
+        instanceId,
+        config.containerPort,
+      );
 
       return {
         instanceId,
@@ -70,6 +68,17 @@ export class DockerSandboxProvider implements SandboxProvider {
       };
     } catch (error) {
       await this.down(containerName);
+
+      console.error(
+        {
+          err: error,
+          sessionId: payload.sessionId,
+          engine: payload.engine,
+        },
+        "Failed to start docker sandbox instance",
+      );
+
+      if (error instanceof AppError) throw error;
 
       throw new AppError(
         "Failed to start docker sandbox instance.",
@@ -97,40 +106,6 @@ export class DockerSandboxProvider implements SandboxProvider {
     await this.executeCommand(["rm", "-f", ...containerIds.split("\n")]);
   }
 
-  private async getAvailablePort() {
-    const server = createServer();
-
-    await new Promise<void>((resolve, reject) => {
-      server.once("error", reject);
-
-      server.listen(0, "127.0.0.1", () => {
-        resolve();
-      });
-    });
-
-    const address = server.address();
-
-    if (!address) {
-      server.close();
-
-      throw new AppError(
-        "Could not find an available port.",
-        StatusCodes.INTERNAL_SERVER_ERROR,
-      );
-    }
-
-    const port = (address as AddressInfo).port;
-
-    await new Promise<void>((resolve, reject) => {
-      server.close((error) => {
-        if (error) reject(error);
-        else resolve();
-      });
-    });
-
-    return port;
-  }
-
   private async ensureImageExists(image: string) {
     try {
       await this.executeCommand(["image", "inspect", image]);
@@ -144,7 +119,6 @@ export class DockerSandboxProvider implements SandboxProvider {
 
   private async startContainer(
     containerName: string,
-    hostPort: number,
     config: EngineDockerConfig & { password: string; environment: string[] },
   ) {
     const envs: string[] = [];
@@ -165,7 +139,7 @@ export class DockerSandboxProvider implements SandboxProvider {
       "--cpus",
       config.cpus,
       "--publish",
-      `127.0.0.1:${hostPort}:${config.containerPort}`,
+      `127.0.0.1::${config.containerPort}`,
       ...envs,
       config.image,
     ];
@@ -173,6 +147,43 @@ export class DockerSandboxProvider implements SandboxProvider {
     const { stdout } = await this.executeCommand(args);
 
     return stdout.trim();
+  }
+
+  private async getMappedPort(instanceId: string, containerPort: number) {
+    const { stdout } = await this.executeCommand([
+      "port",
+      instanceId,
+      String(containerPort),
+    ]);
+
+    const output = stdout.trim();
+
+    if (!output) {
+      throw new AppError(
+        "Docker did not expose a host port for the sandbox.",
+        StatusCodes.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+    const binding = output.split("\n")[0]?.trim();
+
+    if (!binding) {
+      throw new AppError(
+        "Docker returned an empty port binding.",
+        StatusCodes.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+    const port = Number(binding.split(":").pop());
+
+    if (!Number.isInteger(port)) {
+      throw new AppError(
+        "Docker returned an invalid host port.",
+        StatusCodes.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+    return port;
   }
 
   private async waitUntilReady(
@@ -212,9 +223,12 @@ export class DockerSandboxProvider implements SandboxProvider {
       return await execFileAsync("docker", args);
     } catch (error) {
       const command = ["docker", ...args].join(" ");
+      const { stderr = "" } = error as { stderr?: string };
 
       throw new AppError(
-        `Docker command failed: ${command}`,
+        stderr
+          ? `Docker command failed: ${command}. ${stderr.trim()}`
+          : `Docker command failed: ${command}`,
         StatusCodes.INTERNAL_SERVER_ERROR,
       );
     }
