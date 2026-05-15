@@ -11,7 +11,7 @@ const sqliteFallbackEngine: Engine = {
 };
 
 async function request<T>(path: string): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`);
+  const res = await fetch(`${BASE_URL}${path}`, { credentials: "include" });
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
   const json: ApiResponse<T> = await res.json();
   return json.data;
