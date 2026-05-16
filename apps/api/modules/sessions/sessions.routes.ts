@@ -24,6 +24,11 @@ export const sessionsRoutes = (server: AppServer, prefix: string) => {
   );
 
   server.get(`${prefix}/sessions/:id`, controller.getSessionById);
+  server.get(
+    `${prefix}/sessions/:id/schema`,
+    querySessionInterceptor,
+    controller.getSessionSchema,
+  );
   server.post(
     `${prefix}/sessions/:id/query`,
     queryRateLimitInterceptor,

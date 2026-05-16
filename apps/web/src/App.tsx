@@ -268,15 +268,13 @@ export default function App() {
       <div className="body">
         <aside className="sidebar">
           <div className="sidebar-header">Schema</div>
-          {activeEngine?.name === "sqlite" ? (
+          {tables.length > 0 ? (
             <ul className="table-list">
               {tables.map((table) => (
                 <li key={table}>
                   <button
                     className="table-item"
-                    onClick={() =>
-                      setQuery(`SELECT * FROM ${table} ORDER BY id;`)
-                    }
+                    onClick={() => setQuery(`SELECT * FROM ${table} LIMIT 100;`)}
                     type="button"
                   >
                     <span className="table-icon">▤</span>
@@ -285,8 +283,18 @@ export default function App() {
                 </li>
               ))}
             </ul>
+          ) : activeEngine?.name === "sqlite" ? (
+            <div className="sidebar-empty">
+              {loadingDb ? "Loading browser schema..." : "No tables found."}
+            </div>
           ) : (
-            <div className="sidebar-empty">Remote schema will show up here later.</div>
+            <div className="sidebar-empty">
+              {loadingSession || session?.status === "spawning"
+                ? "Preparing remote schema..."
+                : session?.status === "ready"
+                  ? "No tables found."
+                  : "Remote schema will show up here."}
+            </div>
           )}
         </aside>
 

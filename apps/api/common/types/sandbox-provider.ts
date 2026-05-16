@@ -26,6 +26,13 @@ export type SandboxExecutionResult = {
   stderr: string;
 };
 
+export type ParsedQueryOutput = {
+  columns: string[];
+  rows: (string | null)[][];
+  message: string;
+  elapsedMs: number;
+};
+
 export interface SandboxProvider {
   up(payload: SandboxProvisionInput): Promise<SandboxRuntime>;
   down(instanceId: string): Promise<void>;

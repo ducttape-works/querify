@@ -54,6 +54,16 @@ export class SessionsController {
     });
   };
 
+  getSessionSchema = async (request: AnonymousRequest, response: Response) => {
+    const data = await this.sessionService.getSessionSchema(request.session!);
+
+    return genericResponse({
+      response,
+      data,
+      statusCode: StatusCodes.OK,
+    });
+  };
+
   querySession = async (request: AnonymousRequest, response: Response) => {
     const data = await this.sessionService.querySession(
       request.session!,

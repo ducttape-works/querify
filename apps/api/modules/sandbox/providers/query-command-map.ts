@@ -9,6 +9,8 @@ export const sandboxQueryCommandMap = {
     "ON_ERROR_STOP=1",
     "-P",
     "footer=off",
+    "-P",
+    "null=\\N",
     "-A",
     "-F",
     "\t",

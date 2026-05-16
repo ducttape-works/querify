@@ -7,6 +7,8 @@ import { dbEngines } from "@common/const/engines";
 import { SupportedEngine } from "@common/enums/engine";
 import { SandboxProvider, SandboxStatus } from "@common/enums/sandbox";
 import { SandboxProviderFactory } from "@modules/sandbox/providers";
+import { sandboxSchemaQueryMap } from "@modules/sandbox/providers/schema-query-map";
+import { sandboxOutputParserMap } from "@modules/sandbox/providers/output-parser-map";
 import { SandboxSessionRepository, UserRepository } from "@repositories/index";
 import { cleanQuery } from "@common/utils/any";
 import type { SandboxSessionModelType } from "@models/sandbox-session.model";
@@ -100,10 +102,46 @@ export class SessionService {
     };
   }
 
+  public async getSessionSchema(session: SandboxSessionModelType) {
+    const provider = this.sandboxProviderFactory.createByName(
+      session.provider as SandboxProvider,
+    );
+
+    const schemaQuery =
+      sandboxSchemaQueryMap[session.engine as SupportedEngine];
+
+    if (!schemaQuery) {
+      throw new BadRequestError("Schema inspection is not supported.");
+    }
+
+    const result = await provider.execute({
+      instanceId: session.instance_id!,
+      engine: session.engine as SupportedEngine,
+      database: session.database!,
+      username: session.username!,
+      query: schemaQuery,
+    });
+
+    const tables = result.stdout
+      .split("\n")
+      .map((tableName) => tableName.trim())
+      .filter((tableName) => tableName && tableName !== "tablename");
+
+    return {
+      status: true,
+      message: "Schema fetched successfully.",
+      data: {
+        tables,
+      },
+    };
+  }
+
   public async querySession(session: SandboxSessionModelType, query: string) {
     const provider = this.sandboxProviderFactory.createByName(
       session.provider as SandboxProvider,
     );
+
+    const startedAt = Date.now();
 
     const result = await provider.execute({
       instanceId: session.instance_id!,
@@ -113,10 +151,20 @@ export class SessionService {
       query: cleanQuery(query, session.engine as SupportedEngine),
     });
 
+    const elapsedMs = Date.now() - startedAt;
+
+    const parse = sandboxOutputParserMap[session.engine as SupportedEngine];
+
+    if (!parse) {
+      throw new BadRequestError(`Output parsing not implemented for ${session.engine}`);
+    }
+
+    const parsed = parse(result.stdout, elapsedMs);
+
     return {
       status: true,
-      message: "Query executed",
-      data: result,
+      message: parsed.message,
+      data: parsed,
     };
   }
 

@@ -181,6 +181,10 @@ export class DockerSandboxProvider implements SandboxProvider {
       "no-new-privileges:true",
       "--cap-drop",
       "ALL",
+      "--cap-add",
+      "SETUID",
+      "--cap-add",
+      "SETGID",
       "--pids-limit",
       "128",
       "--memory",
@@ -252,7 +256,7 @@ export class DockerSandboxProvider implements SandboxProvider {
     }
 
     throw new AppError(
-      "Docker sandbox did not become ready within ping window.",
+      "Sandbox did not become ready within ping window.",
       StatusCodes.INTERNAL_SERVER_ERROR,
     );
   }
