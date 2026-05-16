@@ -1,9 +1,11 @@
 import { injectable } from "tsyringe";
 
 import {
-  SandboxProvider,
   SandboxProvisionInput,
   SandboxRuntime,
+  SandboxExecutionResult,
+  SandboxProvider,
+  SandboxQuery,
 } from "@common/types/sandbox-provider";
 
 // https://jvns.ca/blog/2021/01/23/firecracker--start-a-vm-in-less-than-a-second/
@@ -11,13 +13,15 @@ import {
 
 @injectable()
 export class FirecrackerSandboxProvider implements SandboxProvider {
-  constructor() {}
-
   up(_payload: SandboxProvisionInput): Promise<SandboxRuntime> {
     throw new Error("Method not implemented.");
   }
 
   down(_instanceId: string): Promise<void> {
+    throw new Error("Method not implemented.");
+  }
+
+  execute(_payload: SandboxQuery): Promise<SandboxExecutionResult> {
     throw new Error("Method not implemented.");
   }
 }

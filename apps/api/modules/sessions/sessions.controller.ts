@@ -41,6 +41,32 @@ export class SessionsController {
     });
   };
 
+  deleteSession = async (request: AnonymousRequest, response: Response) => {
+    const data = await this.sessionService.deleteSession(
+      request.params.id as string,
+      request.anonymousId ?? "",
+    );
+
+    return genericResponse({
+      response,
+      data,
+      statusCode: StatusCodes.OK,
+    });
+  };
+
+  querySession = async (request: AnonymousRequest, response: Response) => {
+    const data = await this.sessionService.querySession(
+      request.session!,
+      request.body.query,
+    );
+
+    return genericResponse({
+      response,
+      data,
+      statusCode: StatusCodes.OK,
+    });
+  };
+
   streamSessionEvents = async (
     request: AnonymousRequest,
     response: Response,
@@ -60,7 +86,12 @@ export class SessionsController {
 
     const listener = (event: {
       type: string;
-      data: { sessionId: string; engine: string; status: string; message?: string };
+      data: {
+        sessionId: string;
+        engine: string;
+        status: string;
+        message?: string;
+      };
     }) => {
       if (event.data.sessionId !== request.params.id) return;
 

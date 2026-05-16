@@ -1,4 +1,5 @@
 import { injectable } from "tsyringe";
+import dayjs from "dayjs";
 
 import BaseRepository from "./base.repository";
 import { SandboxSession, SandboxSessionModelType } from "@models/sandbox-session.model";
@@ -24,5 +25,13 @@ export class SandboxSessionRepository extends BaseRepository<SandboxSessionModel
       .where({ id, user_id })
       .whereNull("deleted_at")
       .first();
+  }
+
+  public async getExpiredActiveSessions(maxAgeMs: number) {
+    return await this.model
+      .query()
+      .whereIn("status", ["spawning", "ready", "running"])
+      .where("created_at", "<", dayjs().subtract(maxAgeMs, "millisecond").toISOString())
+      .whereNull("deleted_at");
   }
 }

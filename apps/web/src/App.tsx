@@ -1,10 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Database } from "sql.js";
 import "./App.css";
 
 import {
   createSession,
+  deleteSession,
+  executeSessionQuery,
   fetchEngines,
+  fetchSessionSchema,
   getSessionEventsUrl,
 } from "./services/api";
 import {
@@ -32,16 +35,33 @@ export default function App() {
   const [loadingDb, setLoadingDb] = useState(true);
   const [loadingEngines, setLoadingEngines] = useState(true);
   const [loadingSession, setLoadingSession] = useState(false);
+  const [runningQuery, setRunningQuery] = useState(false);
+  const sessionRequestId = useRef(0);
 
   const selectEngine = (engine: Engine | null) => {
+    const previousSession = session;
+    const previousEngine = activeEngine;
+    sessionRequestId.current += 1;
+    const requestId = sessionRequestId.current;
+
     setActiveEngine(engine);
     setSession(null);
     setError("");
     setResult(null);
+    setTables(engine?.name === "sqlite" && db ? getTables(db) : []);
 
     if (!engine) {
       setLoadingSession(false);
       return;
+    }
+
+    if (
+      previousSession &&
+      previousEngine &&
+      previousEngine.name !== "sqlite" &&
+      previousSession.status !== "stopped"
+    ) {
+      void deleteSession(previousSession.id);
     }
 
     persistEngineName(engine.name);
@@ -55,13 +75,16 @@ export default function App() {
 
     createSession(engine.name)
       .then((nextSession) => {
+        if (sessionRequestId.current !== requestId) return;
         setSession(nextSession);
       })
       .catch((err) => {
+        if (sessionRequestId.current !== requestId) return;
         setSession(null);
         setError(err instanceof Error ? err.message : "Failed to create session");
       })
       .finally(() => {
+        if (sessionRequestId.current !== requestId) return;
         setLoadingSession(false);
       });
   };
@@ -128,8 +151,50 @@ export default function App() {
     };
   }, [session]);
 
+  useEffect(() => {
+    if (
+      !activeEngine ||
+      activeEngine.name === "sqlite" ||
+      !session ||
+      session.status !== "ready"
+    ) {
+      return;
+    }
+
+    fetchSessionSchema(session.id)
+      .then((schema) => {
+        setTables(schema.tables);
+      })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : "Failed to load schema");
+      });
+  }, [activeEngine, session]);
+
   const runQuery = () => {
-    if (!db || activeEngine?.name !== "sqlite") return;
+    if (!activeEngine) return;
+
+    if (activeEngine.name !== "sqlite") {
+      if (!session || session.status !== "ready") return;
+
+      setError("");
+      setRunningQuery(true);
+
+      executeSessionQuery(session.id, query)
+        .then((nextResult) => {
+          setResult(nextResult);
+        })
+        .catch((err) => {
+          setResult(null);
+          setError(err instanceof Error ? err.message : "Query failed");
+        })
+        .finally(() => {
+          setRunningQuery(false);
+        });
+
+      return;
+    }
+
+    if (!db) return;
 
     setError("");
 
@@ -184,7 +249,14 @@ export default function App() {
           <button
             className="run-btn"
             disabled={
-              loadingDb || loadingEngines || activeEngine?.name !== "sqlite"
+              loadingDb ||
+              loadingEngines ||
+              runningQuery ||
+              (!activeEngine
+                ? true
+                : activeEngine.name === "sqlite"
+                  ? false
+                  : session?.status !== "ready")
             }
             onClick={runQuery}
           >
@@ -245,16 +317,16 @@ export default function App() {
                     : "SQLite is ready."
                   : loadingSession
                     ? "Creating remote session..."
+                    : runningQuery
+                      ? "Running remote query..."
                     : session
                       ? `Session ${session.status}.`
                       : "Pick an engine to start a session."}
               </span>
               <span>
-                {activeEngine?.name === "sqlite"
+                {activeEngine?.name === "sqlite" || session?.status === "ready"
                   ? "Ctrl/Cmd + Enter to run."
-                  : session?.status === "ready"
-                    ? "Session is ready. Query execution is next."
-                    : "Session will start when you pick an engine."}
+                  : "Session will start when you pick an engine."}
               </span>
             </div>
           </div>
@@ -267,11 +339,11 @@ export default function App() {
 
           {error && <div className="output-message error-message">{error}</div>}
 
-          {!error && activeEngine?.name !== "sqlite" && (
+          {!error && activeEngine?.name !== "sqlite" && !result && (
             <div className="output-message">
               {loadingSession && "Creating remote session..."}
               {!loadingSession && session?.status === "spawning" && "Preparing sandbox session..."}
-              {!loadingSession && session?.status === "ready" && "Sandbox session is ready."}
+              {!loadingSession && !runningQuery && session?.status === "ready" && !result && "Run a query to see results."}
               {!loadingSession && session?.status === "error" && "Sandbox session failed to start."}
               {!loadingSession && !session && "Remote session will appear here."}
             </div>

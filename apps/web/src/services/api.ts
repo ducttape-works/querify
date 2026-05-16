@@ -1,4 +1,5 @@
-import type { ApiResponse, Engine, Session } from "../types/api";
+import type { QueryResultState } from "../types/sqlite";
+import type { ApiResponse, Engine, Session, SessionSchema } from "../types/api";
 
 export const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8079";
 
@@ -51,6 +52,23 @@ export const createSession = (engine: string) =>
   });
 
 export const fetchSession = (id: string) => request<Session>(`/api/sessions/${id}`);
+
+export const deleteSession = (id: string) =>
+  request<Session>(`/api/sessions/${id}`, {
+    method: "DELETE",
+  });
+
+export const fetchSessionSchema = (id: string) =>
+  request<SessionSchema>(`/api/sessions/${id}/schema`);
+
+export const executeSessionQuery = (id: string, query: string) =>
+  request<QueryResultState>(`/api/sessions/${id}/query`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ query }),
+  });
 
 export const getSessionEventsUrl = (id: string) =>
   `${BASE_URL}/api/sessions/${id}/events`;

@@ -5,14 +5,18 @@ import { injectable } from "tsyringe";
 import { StatusCodes } from "http-status-codes";
 
 import { sandboxEngineConfigMap } from "@common/const/sandbox-engine-config";
+import { SupportedEngine } from "@common/enums/engine";
 import { SandboxProvider as SandboxProviderName } from "@common/enums/sandbox";
 import AppError from "@common/utils/errors/base.error";
 import {
   SandboxProvider,
   SandboxProvisionInput,
+  SandboxQuery,
   SandboxRuntime,
+  SandboxExecutionResult,
 } from "@common/types/sandbox-provider";
 import type { EngineDockerConfig } from "@common/types/sandbox-engine-config";
+import { sandboxQueryCommandMap } from "./query-command-map";
 
 const execFileAsync = promisify(execFile);
 
@@ -30,15 +34,24 @@ export class DockerSandboxProvider implements SandboxProvider {
       );
     }
 
-    const password = randomBytes(24).toString("hex");
+    const adminPassword = randomBytes(24).toString("hex");
+
+    const queryPassword = randomBytes(24).toString("hex");
+
+    const adminUsername = `${baseConfig.username}_admin`;
+
+    const queryUsername = `${baseConfig.username}_runner`;
 
     const config = {
       ...baseConfig,
-      password,
+      adminPassword,
+      queryPassword,
+      adminUsername,
+      queryUsername,
       environment: [
         `POSTGRES_DB=${baseConfig.database}`,
-        `POSTGRES_USER=${baseConfig.username}`,
-        `POSTGRES_PASSWORD=${password}`,
+        `POSTGRES_USER=${adminUsername}`,
+        `POSTGRES_PASSWORD=${adminPassword}`,
       ],
     };
 
@@ -50,21 +63,16 @@ export class DockerSandboxProvider implements SandboxProvider {
     try {
       const instanceId = await this.startContainer(containerName, config);
 
-      await this.waitUntilReady(instanceId, config);
-
-      const hostPort = await this.getMappedPort(
-        instanceId,
-        config.containerPort,
-      );
+      await this.prepareInstance(payload.engine, instanceId, config);
 
       return {
         instanceId,
         provider: SandboxProviderName.DOCKER,
-        host: "127.0.0.1",
-        port: hostPort,
+        host: null,
+        port: null,
         database: config.database,
-        username: config.username,
-        password: config.password,
+        username: config.queryUsername,
+        password: config.queryPassword,
       };
     } catch (error) {
       await this.down(containerName);
@@ -88,7 +96,36 @@ export class DockerSandboxProvider implements SandboxProvider {
   }
 
   public async down(instanceId: string): Promise<void> {
-    await this.executeCommand(["rm", "-f", instanceId]);
+    try {
+      await this.executeCommand(["rm", "-f", instanceId]);
+    } catch (error) {
+      if (
+        error instanceof AppError &&
+        error.message.includes("No such container")
+      ) {
+        return;
+      }
+
+      throw error;
+    }
+  }
+
+  public async execute(payload: SandboxQuery): Promise<SandboxExecutionResult> {
+    const resolveCommand =
+      sandboxQueryCommandMap[payload.engine as SupportedEngine];
+
+    if (!resolveCommand) {
+      throw new AppError(
+        `Sandbox query execution is not implemented for ${payload.engine}.`,
+        StatusCodes.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+    return await this.executeCommand([
+      "exec",
+      payload.instanceId,
+      ...resolveCommand(payload),
+    ]);
   }
 
   public async pruneManagedContainers(): Promise<void> {
@@ -119,7 +156,13 @@ export class DockerSandboxProvider implements SandboxProvider {
 
   private async startContainer(
     containerName: string,
-    config: EngineDockerConfig & { password: string; environment: string[] },
+    config: EngineDockerConfig & {
+      adminUsername: string;
+      adminPassword: string;
+      queryUsername: string;
+      queryPassword: string;
+      environment: string[];
+    },
   ) {
     const envs: string[] = [];
 
@@ -134,12 +177,18 @@ export class DockerSandboxProvider implements SandboxProvider {
       containerName,
       "--label",
       this._internalLabel,
+      "--security-opt",
+      "no-new-privileges:true",
+      "--cap-drop",
+      "ALL",
+      "--pids-limit",
+      "128",
       "--memory",
       config.memory,
       "--cpus",
       config.cpus,
-      "--publish",
-      `127.0.0.1::${config.containerPort}`,
+      "--network",
+      "none",
       ...envs,
       config.image,
     ];
@@ -149,46 +198,36 @@ export class DockerSandboxProvider implements SandboxProvider {
     return stdout.trim();
   }
 
-  private async getMappedPort(instanceId: string, containerPort: number) {
-    const { stdout } = await this.executeCommand([
-      "port",
-      instanceId,
-      String(containerPort),
-    ]);
-
-    const output = stdout.trim();
-
-    if (!output) {
-      throw new AppError(
-        "Docker did not expose a host port for the sandbox.",
-        StatusCodes.INTERNAL_SERVER_ERROR,
-      );
+  private async prepareInstance(
+    engine: SupportedEngine,
+    instanceId: string,
+    config: EngineDockerConfig & {
+      adminUsername: string;
+      adminPassword: string;
+      queryUsername: string;
+      queryPassword: string;
+      environment: string[];
+    },
+  ) {
+    switch (engine) {
+      case SupportedEngine.POSTGRESQL:
+        await this.waitUntilPostgresReady(instanceId, config);
+        await this.configurePostgresQueryRole(instanceId, config);
+        return;
+      default:
+        return;
     }
-
-    const binding = output.split("\n")[0]?.trim();
-
-    if (!binding) {
-      throw new AppError(
-        "Docker returned an empty port binding.",
-        StatusCodes.INTERNAL_SERVER_ERROR,
-      );
-    }
-
-    const port = Number(binding.split(":").pop());
-
-    if (!Number.isInteger(port)) {
-      throw new AppError(
-        "Docker returned an invalid host port.",
-        StatusCodes.INTERNAL_SERVER_ERROR,
-      );
-    }
-
-    return port;
   }
 
-  private async waitUntilReady(
+  private async waitUntilPostgresReady(
     instanceId: string,
-    config: EngineDockerConfig & { password: string; environment: string[] },
+    config: EngineDockerConfig & {
+      adminUsername: string;
+      adminPassword: string;
+      queryUsername: string;
+      queryPassword: string;
+      environment: string[];
+    },
   ) {
     const maxAttempts = 20;
 
@@ -201,7 +240,7 @@ export class DockerSandboxProvider implements SandboxProvider {
           instanceId,
           "pg_isready",
           "-U",
-          config.username,
+          config.adminUsername,
           "-d",
           config.database,
         ]);
@@ -218,17 +257,63 @@ export class DockerSandboxProvider implements SandboxProvider {
     );
   }
 
+  private async configurePostgresQueryRole(
+    instanceId: string,
+    config: EngineDockerConfig & {
+      adminUsername: string;
+      adminPassword: string;
+      queryUsername: string;
+      queryPassword: string;
+      environment: string[];
+    },
+  ) {
+    const sql = `
+      DROP ROLE IF EXISTS ${config.queryUsername};
+      CREATE ROLE ${config.queryUsername}
+      LOGIN
+      PASSWORD '${config.queryPassword}'
+      NOSUPERUSER
+      NOCREATEDB
+      NOCREATEROLE
+      NOREPLICATION;
+      GRANT CONNECT, TEMP ON DATABASE ${config.database} TO ${config.queryUsername};
+      GRANT USAGE, CREATE ON SCHEMA public TO ${config.queryUsername};
+      GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO ${config.queryUsername};
+      GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO ${config.queryUsername};
+      ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON TABLES TO ${config.queryUsername};
+      ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON SEQUENCES TO ${config.queryUsername};
+      ALTER ROLE ${config.queryUsername} SET statement_timeout = '5000ms';
+      ALTER ROLE ${config.queryUsername} SET lock_timeout = '2000ms';
+      ALTER ROLE ${config.queryUsername} SET idle_in_transaction_session_timeout = '5000ms';
+    `;
+
+    await this.executeCommand([
+      "exec",
+      instanceId,
+      "psql",
+      "-X",
+      "-v",
+      "ON_ERROR_STOP=1",
+      "-U",
+      config.adminUsername,
+      "-d",
+      config.database,
+      "-c",
+      sql,
+    ]);
+  }
+
   private async executeCommand(args: string[]) {
     try {
       return await execFileAsync("docker", args);
     } catch (error) {
-      const command = ["docker", ...args].join(" ");
-      const { stderr = "" } = error as { stderr?: string };
+      const { stderr = "", message = "Docker command failed." } = error as {
+        stderr?: string;
+        message?: string;
+      };
 
       throw new AppError(
-        stderr
-          ? `Docker command failed: ${command}. ${stderr.trim()}`
-          : `Docker command failed: ${command}`,
+        stderr.trim() || message,
         StatusCodes.INTERNAL_SERVER_ERROR,
       );
     }

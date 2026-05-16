@@ -25,3 +25,7 @@ export type Session = {
   status: SessionStatus;
   message?: string;
 };
+
+export type SessionSchema = {
+  tables: string[];
+};

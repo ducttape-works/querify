@@ -13,6 +13,7 @@ import {
 import { cookieInterceptor } from "./common/interceptors/cookie.interceptor";
 import { bootstrap } from "./bootstrap";
 import { DockerSandboxProvider } from "@modules/sandbox/providers/docker";
+import { SessionsCleanupWorker } from "@modules/sessions/sessions-cleanup.worker";
 
 @singleton()
 export default class Application {
@@ -31,6 +32,7 @@ export default class Application {
 
   public async shutDown() {
     if (this._instance_) await this._instance_.close();
+    container.resolve(SessionsCleanupWorker).stop();
     await container.resolve(DockerSandboxProvider).pruneManagedContainers();
   }
 
