@@ -1,0 +1,127 @@
+.lsm-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 8px 0;
+  width: 100%;
+  max-width: 800px;
+}
+
+.lsm-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  min-height: 44px;
+}
+
+.lsm-row-label {
+  width: 100px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 10px;
+}
+
+.lsm-level-name {
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--mono);
+  color: var(--text);
+}
+
+.lsm-row-meta {
+  font-size: 11px;
+  font-family: var(--mono);
+  color: var(--text-muted);
+}
+
+.lsm-entries-wrap {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: flex-start;
+  min-height: 44px;
+}
+
+.lsm-sstable {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  min-width: 56px;
+  min-height: 44px;
+  align-items: center;
+  transition: border-color 80ms, background 80ms;
+}
+
+.lsm-entry {
+  width: 36px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface-2);
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+  transition: background 80ms, color 80ms, border-color 80ms;
+}
+
+.lsm-placeholder {
+  font-size: 12px;
+  font-family: var(--mono);
+  color: var(--text-muted);
+  padding: 8px 10px;
+  align-self: center;
+}
+
+.concept-message[data-type="write"] {
+  background: #f0fdf4;
+  border-color: #86efac;
+  color: #14532d;
+}
+
+.concept-message[data-type="flush"] {
+  background: #fffbeb;
+  border-color: #fcd34d;
+  color: #78350f;
+}
+
+.concept-message[data-type="compact"] {
+  background: #faf5ff;
+  border-color: #d8b4fe;
+  color: #581c87;
+}
+
+.concept-message[data-type="search-mem"],
+.concept-message[data-type="search-l0"],
+.concept-message[data-type="search-l1"] {
+  background: #eff6ff;
+  border-color: #93c5fd;
+  color: #1e3a5f;
+}
+
+.lsm-controls {
+  padding: 10px 16px 12px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.lsm-controls-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}

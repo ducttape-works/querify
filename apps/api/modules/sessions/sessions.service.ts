@@ -156,7 +156,9 @@ export class SessionService {
     const parse = sandboxOutputParserMap[session.engine as SupportedEngine];
 
     if (!parse) {
-      throw new BadRequestError(`Output parsing not implemented for ${session.engine}`);
+      throw new BadRequestError(
+        `Output parsing not implemented for ${session.engine}`,
+      );
     }
 
     const parsed = parse(result.stdout, elapsedMs);
@@ -193,6 +195,35 @@ export class SessionService {
     };
   }
 
+  public async getBTreeConceptState(session: SandboxSessionModelType) {
+    const provider = this.sandboxProviderFactory.createByName(
+      session.provider as SandboxProvider,
+    );
+
+    const exec = (query: string) =>
+      provider.execute({
+        instanceId: session.instance_id!,
+        engine: session.engine as SupportedEngine,
+        database: session.database!,
+        username: session.username!,
+        query,
+      });
+
+    const out = await exec(`SELECT id FROM products ORDER BY id`);
+
+    console.log("stdoutt >>>", out);
+
+    const keys = this.parseTabularRows(out.stdout)
+      .map((row) => parseInt(row.id))
+      .filter((n) => !isNaN(n));
+
+    return {
+      status: true,
+      message: "B-tree state fetched.",
+      data: { keys },
+    };
+  }
+
   public async stopSession(session: SandboxSessionModelType) {
     if (session.instance_id && session.provider) {
       const sandboxProvider = this.sandboxProviderFactory.createByName(
@@ -209,5 +240,24 @@ export class SessionService {
         ended_at: dayjs().toISOString(),
       },
     );
+  }
+
+  private parseTabularRows(stdout: string) {
+    const lines = stdout.trimEnd().split("\n").filter(Boolean);
+    if (lines.length < 2) return [];
+
+    const headers = lines[0].split("\t").map((h) => h.trim());
+
+    return lines.slice(1).map((line) => {
+      const cols = line.split("\t");
+
+      const row: Record<string, string> = {};
+
+      for (let i = 0; i < headers.length; i++) {
+        row[headers[i]] = (cols[i] ?? "").trim();
+      }
+
+      return row;
+    });
   }
 }

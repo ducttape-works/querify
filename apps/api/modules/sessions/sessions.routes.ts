@@ -7,7 +7,7 @@ import { SessionsController } from "./sessions.controller";
 
 const createSessionRateLimitInterceptor =
   createSlidingWindowRateLimitInterceptor({
-    maxAttempts: 5,
+    maxAttempts: 15,
   });
 
 const queryRateLimitInterceptor = createSlidingWindowRateLimitInterceptor({
@@ -36,5 +36,10 @@ export const sessionsRoutes = (server: AppServer, prefix: string) => {
     controller.querySession,
   );
   server.delete(`${prefix}/sessions/:id`, controller.deleteSession);
+  server.get(
+    `${prefix}/sessions/:id/concepts/btree`,
+    querySessionInterceptor,
+    controller.getBTreeConceptState,
+  );
   server.get(`${prefix}/sessions/:id/events`, controller.streamSessionEvents);
 };

@@ -1,6 +1,14 @@
+import Editor, { type Monaco } from "@monaco-editor/react";
 import { useEffect, useRef, useState } from "react";
 import type { Database } from "sql.js";
 import "./App.css";
+import { BTreeConcept } from "./concepts/btree/BTreeConcept";
+import { IndexesConcept } from "./concepts/indexes/IndexesConcept";
+import { LSMConcept } from "./concepts/lsm/LSMConcept";
+import { RollupsConcept } from "./concepts/rollups/RollupsConcept";
+import { ShardingConcept } from "./concepts/sharding/ShardingConcept";
+import { TimeSeriesConcept } from "./concepts/timeseries/TimeSeriesConcept";
+import { WritePathConcept } from "./concepts/writepath/WritePathConcept";
 
 import {
   createSession,
@@ -22,6 +30,7 @@ import type { Engine, Session } from "./types/api";
 import type { CellValue, QueryResultState } from "./types/sqlite";
 
 export default function App() {
+  const [view, setView] = useState<"playground" | "btree" | "indexes" | "lsm" | "timeseries" | "writepath" | "sharding" | "rollups">("playground");
   const [engines, setEngines] = useState<Engine[]>([]);
   const [activeEngine, setActiveEngine] = useState<Engine | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -37,6 +46,7 @@ export default function App() {
   const [loadingSession, setLoadingSession] = useState(false);
   const [runningQuery, setRunningQuery] = useState(false);
   const sessionRequestId = useRef(0);
+  const runQueryRef = useRef<() => void>(() => {});
 
   const selectEngine = (engine: Engine | null) => {
     const previousSession = session;
@@ -228,25 +238,58 @@ export default function App() {
       setError(err instanceof Error ? err.message : "Query failed");
     }
   };
+  runQueryRef.current = runQuery;
+
+  const conceptViews = ["btree", "indexes", "lsm", "timeseries", "writepath", "sharding", "rollups"] as const;
+  const isConceptView = (conceptViews as readonly string[]).includes(view);
+
+  const conceptLinks = [
+    { id: "btree", label: "B-Tree" },
+    { id: "indexes", label: "Indexes" },
+    { id: "lsm", label: "LSM Tree" },
+    { id: "timeseries", label: "Time Series" },
+    { id: "writepath", label: "Write Path" },
+    { id: "sharding", label: "Sharding" },
+    { id: "rollups", label: "Rollups" },
+  ] as const;
 
   return (
     <div className="layout">
       <header className="topbar">
         <div className="topbar-left">
           <span className="logo">Querify</span>
-          <EnginePicker
-            active={activeEngine}
-            engines={engines}
-            loading={loadingEngines}
-            onChange={selectEngine}
-          />
-          <div className="badge badge-muted">
-            {activeEngine?.name === "sqlite" ? "browser sqlite" : "remote sandbox"}
-          </div>
+          <nav className="topbar-nav">
+            <button
+              className={`nav-link${view === "playground" ? " active" : ""}`}
+              onClick={() => setView("playground")}
+            >
+              Playground
+            </button>
+            <span className="nav-sep" />
+            <button
+              className={`nav-link${isConceptView ? " active" : ""}`}
+              onClick={() => setView("btree")}
+            >
+              Concepts
+            </button>
+          </nav>
+          {view === "playground" && (
+            <>
+              <EnginePicker
+                active={activeEngine}
+                engines={engines}
+                loading={loadingEngines}
+                onChange={selectEngine}
+              />
+              <div className="badge badge-muted">
+                {activeEngine?.name === "sqlite" ? "browser sqlite" : "remote sandbox"}
+              </div>
+            </>
+          )}
         </div>
 
         <div className="topbar-right">
-          <button
+          {view === "playground" && <button
             className="run-btn"
             disabled={
               loadingDb ||
@@ -261,11 +304,33 @@ export default function App() {
             onClick={runQuery}
           >
             Run <kbd>⌘↵</kbd>
-          </button>
+          </button>}
         </div>
       </header>
 
+      {isConceptView && (
+        <nav className="concept-subnav">
+          {conceptLinks.map(({ id, label }) => (
+            <button
+              key={id}
+              className={`subnav-link${view === id ? " active" : ""}`}
+              onClick={() => setView(id)}
+            >
+              {label}
+            </button>
+          ))}
+        </nav>
+      )}
+
       <div className="body">
+        {view === "btree" && <BTreeConcept />}
+        {view === "indexes" && <IndexesConcept />}
+        {view === "lsm" && <LSMConcept />}
+        {view === "timeseries" && <TimeSeriesConcept />}
+        {view === "writepath" && <WritePathConcept />}
+        {view === "sharding" && <ShardingConcept />}
+        {view === "rollups" && <RollupsConcept />}
+        {view === "playground" && <>
         <aside className="sidebar">
           <div className="sidebar-header">Schema</div>
           {tables.length > 0 ? (
@@ -304,17 +369,62 @@ export default function App() {
           </div>
 
           <div className="editor-area">
-            <textarea
-              className="query-editor"
-              onChange={(event) => setQuery(event.target.value)}
-              onKeyDown={(event) => {
-                if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
-                  event.preventDefault();
-                  runQuery();
-                }
-              }}
-              spellCheck={false}
+            <Editor
+              height="100%"
+              language="sql"
+              theme="querify-light"
               value={query}
+              onChange={(val) => setQuery(val ?? "")}
+              options={{
+                fontSize: 13,
+                lineHeight: 22,
+                minimap: { enabled: false },
+                scrollBeyondLastLine: false,
+                renderLineHighlight: "none",
+                overviewRulerLanes: 0,
+                folding: false,
+                lineNumbers: "on",
+                lineNumbersMinChars: 3,
+                glyphMargin: false,
+                padding: { top: 16, bottom: 16 },
+                fontFamily: "'JetBrains Mono', 'Fira Mono', monospace",
+                fontLigatures: true,
+                wordWrap: "on",
+                tabSize: 2,
+                scrollbar: { verticalScrollbarSize: 6, horizontalScrollbarSize: 6 },
+                suggest: { showKeywords: true },
+              }}
+              beforeMount={(monaco: Monaco) => {
+                monaco.editor.defineTheme("querify-light", {
+                  base: "vs",
+                  inherit: true,
+                  rules: [
+                    { token: "keyword", foreground: "2f8d6a", fontStyle: "bold" },
+                    { token: "string", foreground: "8b5cf6" },
+                    { token: "number", foreground: "c2410c" },
+                    { token: "comment", foreground: "78716c", fontStyle: "italic" },
+                    { token: "operator", foreground: "44403c" },
+                  ],
+                  colors: {
+                    "editor.background": "#ffffff",
+                    "editor.foreground": "#44403c",
+                    "editor.lineHighlightBackground": "#f0eeeb00",
+                    "editorLineNumber.foreground": "#c4bfba",
+                    "editorLineNumber.activeForeground": "#78716c",
+                    "editor.selectionBackground": "#d9f3ea",
+                    "editorCursor.foreground": "#2f8d6a",
+                    "editorIndentGuide.background1": "#e4e1db",
+                    "editorBracketMatch.background": "#d9f3ea",
+                    "editorBracketMatch.border": "#2f8d6a",
+                  },
+                });
+              }}
+              onMount={(editor, monaco) => {
+                editor.addCommand(
+                  monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter,
+                  () => runQueryRef.current(),
+                );
+              }}
             />
 
             <div className="editor-footer">
@@ -403,6 +513,7 @@ export default function App() {
             </div>
           )}
         </div>
+        </>}
       </div>
     </div>
   );

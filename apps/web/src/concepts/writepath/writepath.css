@@ -1,0 +1,242 @@
+.wp4-shell {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  padding: 18px 22px 22px;
+  gap: 14px;
+  overflow: auto;
+}
+
+.wp4-header {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.wp4-sql {
+  padding: 12px 14px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--text);
+}
+
+.wp4-sql-keyword {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.wp4-sql-string {
+  color: #c2410c;
+}
+
+.wp4-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+}
+
+.wp4-manual {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 0 14px 14px;
+}
+
+.wp4-notice {
+  max-width: 920px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: #fffbeb;
+  color: #78350f;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  line-height: 1.5;
+  font-size: 13px;
+}
+
+.wp4-notice-label {
+  flex-shrink: 0;
+  font-family: var(--mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #a16207;
+  padding-top: 2px;
+}
+
+.wp4-stage-legend {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.wp4-pill {
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+.wp4-pill.active {
+  background: #eff6ff;
+  border-color: #93c5fd;
+  color: #1d4ed8;
+}
+
+.wp4-columns {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.wp4-column {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  padding: 18px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+
+.wp4-column.active {
+  transform: translateY(-2px);
+  border-color: #93c5fd;
+  box-shadow: 0 10px 24px rgba(59, 130, 246, 0.12);
+}
+
+.wp4-column-eyebrow {
+  font-family: var(--mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.wp4-column-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.wp4-column-body {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-muted);
+  min-height: 60px;
+}
+
+.wp4-state {
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.wp4-state.blue {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.wp4-state.green {
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.wp4-state.amber {
+  background: #fffbeb;
+  color: #a16207;
+}
+
+.wp4-state.muted {
+  background: var(--surface-2);
+  color: var(--text-muted);
+}
+
+.wp4-row-chip,
+.wp4-row-empty {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  border-radius: 10px;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.wp4-row-chip {
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.wp4-row-empty {
+  border: 1px dashed var(--border);
+  color: var(--text-muted);
+}
+
+.wp4-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.wp4-summary.pulse {
+  animation: wp4-pulse 700ms ease;
+}
+
+.wp4-mini-fact {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  padding: 10px 12px;
+}
+
+.wp4-mini-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.wp4-mini-value {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  text-transform: uppercase;
+}
+
+@keyframes wp4-pulse {
+  0% {
+    transform: translateY(0);
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.2);
+  }
+  40% {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px 0 rgba(59, 130, 246, 0.12);
+  }
+  100% {
+    transform: translateY(0);
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  }
+}
+
+@media (max-width: 1100px) {
+  .wp4-columns,
+  .wp4-summary {
+    grid-template-columns: 1fr;
+  }
+}

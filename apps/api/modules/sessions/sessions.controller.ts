@@ -77,6 +77,11 @@ export class SessionsController {
     });
   };
 
+  getBTreeConceptState = async (request: AnonymousRequest, response: Response) => {
+    const data = await this.sessionService.getBTreeConceptState(request.session!);
+    return genericResponse({ response, data, statusCode: StatusCodes.OK });
+  };
+
   streamSessionEvents = async (
     request: AnonymousRequest,
     response: Response,

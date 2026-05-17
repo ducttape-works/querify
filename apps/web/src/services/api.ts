@@ -1,5 +1,5 @@
 import type { QueryResultState } from "../types/sqlite";
-import type { ApiResponse, Engine, Session, SessionSchema } from "../types/api";
+import type { ApiResponse, BTreeConceptState, Engine, Session, SessionSchema } from "../types/api";
 
 export const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8079";
 
@@ -69,6 +69,11 @@ export const executeSessionQuery = (id: string, query: string) =>
     },
     body: JSON.stringify({ query }),
   });
+
+export const fetchBTreeConceptState = (sessionId: string, indexName = "idx_products_id") =>
+  request<BTreeConceptState>(
+    `/api/sessions/${sessionId}/concepts/btree?indexName=${encodeURIComponent(indexName)}`,
+  );
 
 export const getSessionEventsUrl = (id: string) =>
   `${BASE_URL}/api/sessions/${id}/events`;

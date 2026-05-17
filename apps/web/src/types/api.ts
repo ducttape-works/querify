@@ -29,3 +29,7 @@ export type Session = {
 export type SessionSchema = {
   tables: string[];
 };
+
+export type BTreeConceptState = {
+  keys: number[];
+};

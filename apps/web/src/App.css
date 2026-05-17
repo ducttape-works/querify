@@ -37,6 +37,42 @@
   margin-right: 4px;
 }
 
+.topbar-nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.nav-link {
+  padding: 4px 10px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-family: var(--sans);
+  cursor: pointer;
+}
+
+.nav-link:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.nav-link.active {
+  background: var(--surface-2);
+  color: var(--text);
+  font-weight: 500;
+}
+
+.nav-sep {
+  width: 1px;
+  height: 16px;
+  background: var(--border);
+  flex-shrink: 0;
+  margin: 0 2px;
+}
+
 .badge {
   position: relative;
   display: flex;
@@ -151,6 +187,38 @@
   color: inherit;
 }
 
+.concept-subnav {
+  height: 36px;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 2px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.subnav-link {
+  padding: 3px 10px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-family: var(--sans);
+  cursor: pointer;
+}
+
+.subnav-link:hover {
+  color: var(--text);
+}
+
+.subnav-link.active {
+  background: var(--surface-2);
+  color: var(--text);
+  font-weight: 500;
+}
+
 .body {
   flex: 1;
   display: flex;
@@ -262,7 +330,9 @@
   flex-direction: column;
   background: var(--surface);
   overflow: hidden;
+  min-height: 0;
 }
+
 
 .query-editor {
   flex: 1;

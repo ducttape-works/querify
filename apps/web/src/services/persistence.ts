@@ -1,7 +1,7 @@
 import type { PersistedState } from "../types/persistence";
 
 const STORAGE_KEY = "querify:playground";
-const MAX_QUERY_LENGTH = 5000; // I added this to prevent storing long queries and not bloat llocal storage
+const MAX_QUERY_LENGTH = 5000;
 
 const readState = (): PersistedState => {
   try {

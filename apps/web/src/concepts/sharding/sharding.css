@@ -1,0 +1,273 @@
+.sh-wrap {
+  width: 100%;
+  max-width: 900px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 14px 18px 24px;
+}
+
+.sh-empty-state,
+.rl-wrap .sh-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.sh-empty-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.sh-empty-sub {
+  max-width: 760px;
+  line-height: 1.7;
+  color: var(--text-muted);
+}
+
+.sh-table-wrap,
+.sh-global-idx,
+.sh-result-box,
+.rl-sql-section {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  padding: 14px;
+}
+
+.sh-table-head-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.sh-table-title,
+.sh-global-idx-head,
+.sh-local-idx-head,
+.rl-sql-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.sh-table-count {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.sh-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.sh-table th,
+.sh-table td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sh-shards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.sh-shard {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.sh-shard-accessed {
+  box-shadow: 0 10px 24px rgba(59, 130, 246, 0.08);
+}
+
+.sh-shard-pruned {
+  opacity: 0.72;
+}
+
+.sh-shard-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+}
+
+.sh-shard-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.sh-shard-range,
+.sh-row-date,
+.sh-row-amount,
+.sh-idx-ptr {
+  color: var(--text-muted);
+}
+
+.sh-pruned-badge {
+  margin-left: auto;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #fef3c7;
+  color: #92400e;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.sh-shard-rows,
+.sh-global-idx-entries {
+  display: flex;
+  flex-direction: column;
+}
+
+.sh-shard-row,
+.sh-local-idx-entry,
+.sh-global-idx-entry {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+.sh-shard-row:last-child,
+.sh-local-idx-entry:last-child,
+.sh-global-idx-entry:last-child {
+  border-bottom: none;
+}
+
+.sh-local-idx {
+  border-top: 1px dashed var(--border);
+  padding: 10px;
+}
+
+.sh-idx-key {
+  color: var(--text);
+}
+
+.sh-idx-arr {
+  color: var(--text-muted);
+}
+
+.sh-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  padding: 14px;
+}
+
+.sh-picker-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.sh-picker-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.sh-mode-picker {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.sh-mode-btn {
+  border: none;
+  background: transparent;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.sh-mode-btn.active {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.sh-id-select {
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text);
+}
+
+.sh-result-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sh-result-step {
+  display: flex;
+  gap: 10px;
+  line-height: 1.6;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.sh-step-num {
+  width: 20px;
+  flex-shrink: 0;
+  font-family: var(--mono);
+  color: var(--text-muted);
+}
+
+.sh-result-summary {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.rl-sql-block {
+  margin: 8px 0 0;
+  white-space: pre-wrap;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--text);
+}
+
+@media (max-width: 1100px) {
+  .sh-shards {
+    grid-template-columns: 1fr;
+  }
+}
