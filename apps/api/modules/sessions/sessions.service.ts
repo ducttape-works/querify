@@ -12,6 +12,7 @@ import { sandboxOutputParserMap } from "@modules/sandbox/providers/output-parser
 import { SandboxSessionRepository, UserRepository } from "@repositories/index";
 import { cleanQuery } from "@common/utils/any";
 import { EncryptionService } from "@common/services/encryption.service";
+import type { SessionSchemaTable } from "@common/types/session-event";
 import type { SandboxSessionModelType } from "@models/sandbox-session.model";
 
 @injectable()
@@ -173,13 +174,15 @@ export class SessionService {
     }
 
     const parsed = parse(result.stdout, 0);
+    let tables: SessionSchemaTable[] = [];
 
-    const tables: string[] = [];
-
-    for (const row of parsed.rows) {
-      if (row[0]) {
-        tables.push(row[0]);
-      }
+    switch (session.engine as SupportedEngine) {
+      case SupportedEngine.MONGODB:
+        tables = this.buildMongoSchemaTables(parsed.rows);
+        break;
+      default:
+        tables = this.buildSqlSchemaTables(parsed.rows);
+        break;
     }
 
     return {
@@ -322,5 +325,47 @@ export class SessionService {
     }
 
     return this.encryptionService.decrypt(session.password_ciphertext);
+  }
+
+  private buildMongoSchemaTables(rows: (string | null)[][]) {
+    const tables: SessionSchemaTable[] = [];
+
+    for (const row of rows) {
+      if (!row[0]) continue;
+
+      tables.push({
+        name: row[0],
+        columns: [],
+      });
+    }
+
+    return tables;
+  }
+
+  private buildSqlSchemaTables(rows: (string | null)[][]) {
+    const tables: SessionSchemaTable[] = [];
+    let currentTable: SessionSchemaTable | null = null;
+
+    for (const row of rows) {
+      if (!row[0]) continue;
+
+      if (!currentTable || currentTable.name !== row[0]) {
+        currentTable = {
+          name: row[0],
+          columns: [],
+        };
+
+        tables.push(currentTable);
+      }
+
+      if (row[1]) {
+        currentTable.columns.push({
+          name: row[1],
+          type: row[2] ?? "",
+        });
+      }
+    }
+
+    return tables;
   }
 }

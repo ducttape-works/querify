@@ -199,6 +199,10 @@ export class DockerSandboxProvider implements SandboxProvider {
         await this.waitUntilMySqlReady(instanceId, config);
         await this.configureMySqlQueryUser(instanceId, config);
         return;
+      case SupportedEngine.MONGODB:
+        await this.waitUntilMongoReady(instanceId, config);
+        await this.configureMongoQueryUser(instanceId, config);
+        return;
       default:
         return;
     }
@@ -235,6 +239,19 @@ export class DockerSandboxProvider implements SandboxProvider {
           environment: [
             `MYSQL_DATABASE=${baseConfig.database}`,
             `MYSQL_ROOT_PASSWORD=${adminPassword}`,
+          ],
+        };
+      case SupportedEngine.MONGODB:
+        return {
+          ...baseConfig,
+          adminUsername: "root",
+          adminPassword,
+          queryUsername: `${baseConfig.username}_runner`,
+          queryPassword,
+          environment: [
+            `MONGO_INITDB_ROOT_USERNAME=root`,
+            `MONGO_INITDB_ROOT_PASSWORD=${adminPassword}`,
+            `MONGO_INITDB_DATABASE=${baseConfig.database}`,
           ],
         };
       default:
@@ -286,6 +303,7 @@ export class DockerSandboxProvider implements SandboxProvider {
   private getContainerSecurityArgs(engine: SupportedEngine) {
     switch (engine) {
       case SupportedEngine.MYSQL:
+      case SupportedEngine.MONGODB:
         return ["--security-opt", "no-new-privileges:true"];
       default:
         return [
@@ -421,17 +439,85 @@ export class DockerSandboxProvider implements SandboxProvider {
     ]);
   }
 
+  private async waitUntilMongoReady(
+    instanceId: string,
+    config: EngineDockerConfig & {
+      adminUsername: string;
+      adminPassword: string;
+      queryUsername: string;
+      queryPassword: string;
+      environment: string[];
+    },
+  ) {
+    const maxAttempts = 60;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      try {
+        await this.executeCommand(
+          [
+            "exec",
+            instanceId,
+            "mongosh",
+            "--quiet",
+            "--host", "127.0.0.1",
+            "--port", "27017",
+            "-u", config.adminUsername,
+            "-p", config.adminPassword,
+            "--authenticationDatabase", "admin",
+            "--eval", "db.adminCommand('ping')",
+          ],
+          3000,
+        );
+
+        return;
+      } catch {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+    }
+
+    throw new AppError(
+      "Sandbox did not become ready within ping window.",
+      StatusCodes.INTERNAL_SERVER_ERROR,
+    );
+  }
+
+  private async configureMongoQueryUser(
+    instanceId: string,
+    config: EngineDockerConfig & {
+      adminUsername: string;
+      adminPassword: string;
+      queryUsername: string;
+      queryPassword: string;
+      environment: string[];
+    },
+  ) {
+    const db = `db.getSiblingDB("${config.database}")`;
+
+    await this.executeCommand([
+      "exec",
+      instanceId,
+      "mongosh",
+      "--quiet",
+      "-u", config.adminUsername,
+      "-p", config.adminPassword,
+      "--authenticationDatabase", "admin",
+      "--host", "127.0.0.1",
+      "--port", "27017",
+      "--eval", `try { ${db}.dropUser("${config.queryUsername}"); } catch(e) {} ${db}.createUser({ user: "${config.queryUsername}", pwd: "${config.queryPassword}", roles: [{ role: "readWrite", db: "${config.database}" }] })`,
+    ]);
+  }
+
   private async executeCommand(args: string[], timeoutMs?: number) {
     try {
       return await execFileAsync("docker", args, timeoutMs ? { timeout: timeoutMs } : {});
     } catch (error) {
-      const { stderr = "", message = "Docker command failed." } = error as {
+      const { stderr = "", stdout = "" } = error as {
         stderr?: string;
-        message?: string;
+        stdout?: string;
       };
 
       throw new AppError(
-        stderr.trim() || message,
+        stderr.trim() || stdout.trim() || "Something went wrong.",
         StatusCodes.INTERNAL_SERVER_ERROR,
       );
     }

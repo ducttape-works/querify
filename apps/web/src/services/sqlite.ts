@@ -24,8 +24,11 @@ export const formatCell = (value: CellValue) => {
 
 export const getTables = (db: Database) => {
   const result = db.exec(
-    "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name;",
+    "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;",
   );
 
-  return result[0]?.values.map(([name]) => String(name)) ?? [];
+  return result[0]?.values.map(([name]) => ({
+      name: name as string,
+      columns: [],
+    })) ?? [];
 };

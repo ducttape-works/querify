@@ -23,4 +23,17 @@ export const sandboxQueryCommandMap = {
     `--database=${payload.database}`,
     "-e", payload.query,
   ],
+  [SupportedEngine.MONGODB]: (payload: SandboxQuery) => [
+    payload.instanceId,
+    "mongosh",
+    "--quiet",
+    "--json=relaxed",
+    "--host", "127.0.0.1",
+    "--port", "27017",
+    "-u", payload.username,
+    "-p", payload.password,
+    "--authenticationDatabase", payload.database,
+    payload.database,
+    "--eval", `var r = ${payload.query}; r?.toArray ? r.toArray() : r`
+  ],
 };

@@ -33,6 +33,11 @@ export type ParsedQueryOutput = {
   elapsedMs: number;
 };
 
+export type OutputParser = (
+  stdout: string,
+  elapsedMs: number,
+) => ParsedQueryOutput;
+
 export interface SandboxProvider {
   up(payload: SandboxProvisionInput): Promise<SandboxRuntime>;
   down(instanceId: string): Promise<void>;

@@ -9,3 +9,8 @@ export type SessionEvent = {
     message?: string;
   };
 };
+
+export type SessionSchemaTable = {
+  name: string;
+  columns: { name: string; type: string }[];
+};

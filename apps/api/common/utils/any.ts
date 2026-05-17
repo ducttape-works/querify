@@ -13,10 +13,12 @@ export const cleanQuery = (query: string, engine: SupportedEngine) => {
     throw new BadRequestError("Query is too large.");
   }
 
-  query = query.replace(/;\s*$/, "");
+  if (engine !== SupportedEngine.MONGODB) {
+    query = query.replace(/;\s*$/, "");
 
-  if (query.includes(";")) {
-    throw new BadRequestError("Only one SQL statement is allowed.");
+    if (query.includes(";")) {
+      throw new BadRequestError("Only one SQL statement is allowed.");
+    }
   }
 
   const loweredQuery = query.toLowerCase();

@@ -26,4 +26,12 @@ export const sandboxEngineConfigMap: Partial<
       "--skip-name-resolve",
     ],
   },
+  [SupportedEngine.MONGODB]: {
+    image: "mongo:7",
+    containerPort: 27017,
+    database: "querify",
+    username: "querify",
+    memory: "1g",
+    cpus: "1.0",
+  },
 };

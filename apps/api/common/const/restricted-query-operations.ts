@@ -23,6 +23,16 @@ export const restrictedQueryOperations = {
     "revoke ",
     "\\",
   ],
+  [SupportedEngine.MONGODB]: [
+    "db.admincommand",
+    "db.system.",
+    "db.dropdatabase",
+    "db.createuser",
+    "db.dropuser",
+    "db.updateuser",
+    "sleep(",
+    "while(",
+  ],
   [SupportedEngine.MYSQL]: [
     "load_file",
     "into outfile",

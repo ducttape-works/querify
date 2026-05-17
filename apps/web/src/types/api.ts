@@ -26,8 +26,13 @@ export type Session = {
   message?: string;
 };
 
+export type SchemaTable = {
+  name: string;
+  columns: { name: string; type: string }[];
+};
+
 export type SessionSchema = {
-  tables: string[];
+  tables: SchemaTable[];
 };
 
 export type BTreeConceptState = {

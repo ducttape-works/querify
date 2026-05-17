@@ -26,7 +26,7 @@ import {
 } from "./services/persistence";
 import { createSqliteDb, formatCell, getTables } from "./services/sqlite";
 import { queries } from "./sql/sqlite";
-import type { Engine, Session } from "./types/api";
+import type { Engine, SchemaTable, Session } from "./types/api";
 import type { CellValue, QueryResultState } from "./types/sqlite";
 
 export default function App() {
@@ -37,7 +37,8 @@ export default function App() {
   const [query, setQuery] = useState<string>(
     () => getPersistedQuery() ?? queries.default,
   );
-  const [tables, setTables] = useState<string[]>([]);
+  const [tables, setTables] = useState<SchemaTable[]>([]);
+  const [expandedTables, setExpandedTables] = useState<Set<string>>(new Set());
   const [db, setDb] = useState<Database | null>(null);
   const [result, setResult] = useState<QueryResultState | null>(null);
   const [error, setError] = useState("");
@@ -59,6 +60,7 @@ export default function App() {
     setError("");
     setResult(null);
     setTables(engine?.name === "sqlite" && db ? getTables(db) : []);
+    setExpandedTables(new Set());
 
     if (!engine) {
       setLoadingSession(false);
@@ -189,7 +191,9 @@ export default function App() {
       setError("");
       setRunningQuery(true);
 
-      const isDDL = /^\s*(create|drop|alter|rename|truncate)\b/i.test(query);
+      const isDDL = activeEngine.name === "mongodb"
+        ? /createCollection|\.drop\(\)|dropCollection|insertOne|insertMany/i.test(query)
+        : /^\s*(create|drop|alter|rename|truncate)\b/i.test(query);
 
       executeSessionQuery(session.id, query)
         .then((nextResult) => {
@@ -343,15 +347,41 @@ export default function App() {
           {tables.length > 0 ? (
             <ul className="table-list">
               {tables.map((table) => (
-                <li key={table}>
+                <li key={table.name}>
                   <button
                     className="table-item"
-                    onClick={() => setQuery(`SELECT * FROM ${table} LIMIT 100;`)}
+                    onClick={() => {
+                      setQuery(
+                        activeEngine?.name === "mongodb"
+                          ? `db.${table.name}.find({})`
+                          : `SELECT * FROM ${table.name} LIMIT 100;`
+                      );
+                      setExpandedTables((prev) => {
+                        const next = new Set(prev);
+                        next.has(table.name) ? next.delete(table.name) : next.add(table.name);
+                        return next;
+                      });
+                    }}
                     type="button"
                   >
                     <span className="table-icon">▤</span>
-                    {table}
+                    {table.name}
+                    {table.columns.length > 0 && (
+                      <span className="table-chevron">
+                        {expandedTables.has(table.name) ? "▾" : "▸"}
+                      </span>
+                    )}
                   </button>
+                  {expandedTables.has(table.name) && table.columns.length > 0 && (
+                    <ul className="column-list">
+                      {table.columns.map((col) => (
+                        <li key={col.name} className="column-item">
+                          <span className="column-name">{col.name}</span>
+                          <span className="column-type">{col.type}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </li>
               ))}
             </ul>
@@ -372,13 +402,13 @@ export default function App() {
 
         <div className="editor-pane">
           <div className="pane-header">
-            <span className="pane-tab active">query.sql</span>
+            <span className="pane-tab active">{activeEngine?.name === "mongodb" ? "query.js" : "query.sql"}</span>
           </div>
 
           <div className="editor-area">
             <Editor
               height="100%"
-              language="sql"
+              language={activeEngine?.name === "mongodb" ? "javascript" : "sql"}
               theme="querify-light"
               value={query}
               onChange={(val) => setQuery(val ?? "")}
