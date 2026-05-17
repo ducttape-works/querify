@@ -34,4 +34,12 @@ export const sandboxEngineConfigMap: Partial<
     memory: "1g",
     cpus: "1.0",
   },
+  [SupportedEngine.CLICKHOUSE]: {
+    image: "clickhouse/clickhouse-server:24",
+    containerPort: 9000,
+    database: "querify",
+    username: "querify",
+    memory: "512m",
+    cpus: "0.5",
+  },
 };

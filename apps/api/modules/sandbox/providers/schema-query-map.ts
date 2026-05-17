@@ -6,4 +6,6 @@ export const sandboxSchemaQueryMap = {
   [SupportedEngine.MYSQL]:
     "SELECT table_name, column_name, column_type FROM information_schema.columns WHERE table_schema = DATABASE() ORDER BY table_name, ordinal_position;",
   [SupportedEngine.MONGODB]: "db.getCollectionNames()",
+  [SupportedEngine.CLICKHOUSE]:
+    "SELECT table, name, type FROM system.columns WHERE database = currentDatabase() ORDER BY table, position",
 };

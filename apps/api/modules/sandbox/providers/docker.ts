@@ -203,6 +203,10 @@ export class DockerSandboxProvider implements SandboxProvider {
         await this.waitUntilMongoReady(instanceId, config);
         await this.configureMongoQueryUser(instanceId, config);
         return;
+      case SupportedEngine.CLICKHOUSE:
+        await this.waitUntilClickHouseReady(instanceId, config);
+        await this.configureClickHouseQueryUser(instanceId, config);
+        return;
       default:
         return;
     }
@@ -252,6 +256,20 @@ export class DockerSandboxProvider implements SandboxProvider {
             `MONGO_INITDB_ROOT_USERNAME=root`,
             `MONGO_INITDB_ROOT_PASSWORD=${adminPassword}`,
             `MONGO_INITDB_DATABASE=${baseConfig.database}`,
+          ],
+        };
+      case SupportedEngine.CLICKHOUSE:
+        return {
+          ...baseConfig,
+          adminUsername: `${baseConfig.username}_admin`,
+          adminPassword,
+          queryUsername: `${baseConfig.username}_runner`,
+          queryPassword,
+          environment: [
+            `CLICKHOUSE_DB=${baseConfig.database}`,
+            `CLICKHOUSE_USER=${baseConfig.username}_admin`,
+            `CLICKHOUSE_PASSWORD=${adminPassword}`,
+            `CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1`,
           ],
         };
       default:
@@ -304,6 +322,7 @@ export class DockerSandboxProvider implements SandboxProvider {
     switch (engine) {
       case SupportedEngine.MYSQL:
       case SupportedEngine.MONGODB:
+      case SupportedEngine.CLICKHOUSE:
         return ["--security-opt", "no-new-privileges:true"];
       default:
         return [
@@ -479,6 +498,73 @@ export class DockerSandboxProvider implements SandboxProvider {
       "Sandbox did not become ready within ping window.",
       StatusCodes.INTERNAL_SERVER_ERROR,
     );
+  }
+
+  private async waitUntilClickHouseReady(
+    instanceId: string,
+    config: EngineDockerConfig & {
+      adminUsername: string;
+      adminPassword: string;
+      queryUsername: string;
+      queryPassword: string;
+      environment: string[];
+    },
+  ) {
+    const maxAttempts = 30;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      try {
+        await this.executeCommand(
+          [
+            "exec",
+            instanceId,
+            "clickhouse-client",
+            "--user", config.adminUsername,
+            "--password", config.adminPassword,
+            "--query", "SELECT 1",
+          ],
+          3000,
+        );
+
+        return;
+      } catch {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+    }
+
+    throw new AppError(
+      "Sandbox did not become ready within ping window.",
+      StatusCodes.INTERNAL_SERVER_ERROR,
+    );
+  }
+
+  private async configureClickHouseQueryUser(
+    instanceId: string,
+    config: EngineDockerConfig & {
+      adminUsername: string;
+      adminPassword: string;
+      queryUsername: string;
+      queryPassword: string;
+      environment: string[];
+    },
+  ) {
+    await this.executeCommand([
+      "exec",
+      instanceId,
+      "clickhouse-client",
+      "--user", config.adminUsername,
+      "--password", config.adminPassword,
+      "--query", `CREATE USER IF NOT EXISTS ${config.queryUsername} IDENTIFIED BY '${config.queryPassword}'`,
+    ]);
+
+    await this.executeCommand([
+      "exec",
+      instanceId,
+      "clickhouse-client",
+      "--user", config.adminUsername,
+      "--password", config.adminPassword,
+      "--query", `GRANT SELECT, INSERT, CREATE TABLE, DROP TABLE, ALTER TABLE, CREATE VIEW, DROP VIEW ON ${config.database}.* TO ${config.queryUsername}`,
+    ]);
   }
 
   private async configureMongoQueryUser(

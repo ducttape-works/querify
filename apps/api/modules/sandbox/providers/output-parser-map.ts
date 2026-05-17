@@ -113,4 +113,5 @@ export const sandboxOutputParserMap = {
   [SupportedEngine.POSTGRESQL]: parseTabOutput,
   [SupportedEngine.MYSQL]: parseTabOutput,
   [SupportedEngine.MONGODB]: parseMongoOutput,
+  [SupportedEngine.CLICKHOUSE]: parseTabOutput,
 };

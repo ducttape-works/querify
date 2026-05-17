@@ -1,2 +1,1 @@
 - Add Validate Query (should take a sql query, and validate accuracy, if wrong, suggest correction with explanation)
-- Add tighter privilege guards

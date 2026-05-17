@@ -36,4 +36,13 @@ export const sandboxQueryCommandMap = {
     payload.database,
     "--eval", `var r = ${payload.query}; r?.toArray ? r.toArray() : r`
   ],
+  [SupportedEngine.CLICKHOUSE]: (payload: SandboxQuery) => [
+    payload.instanceId,
+    "clickhouse-client",
+    "--user", payload.username,
+    "--password", payload.password,
+    "--database", payload.database,
+    "--format", "TabSeparatedWithNames",
+    "--query", payload.query,
+  ],
 };

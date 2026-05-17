@@ -52,4 +52,14 @@ export const restrictedQueryOperations = {
     "revoke ",
     "\\",
   ],
+  [SupportedEngine.CLICKHOUSE]: [
+    "system.",
+    "create user",
+    "alter user",
+    "drop user",
+    "create role",
+    "drop role",
+    "grant ",
+    "revoke ",
+  ],
 };
