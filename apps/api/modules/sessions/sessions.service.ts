@@ -42,23 +42,14 @@ export class SessionService {
       await this.sandboxSessionRepository.getActiveSessionForUser(user.id);
 
     if (activeSession) {
-      if (
+      const timedOut =
         activeSession.status === SandboxStatus.SPAWNING &&
-        dayjs().diff(dayjs(activeSession.created_at), "millisecond") >=
-          2 * 60 * 1000
-      ) {
-        if (activeSession.instance_id && activeSession.provider) {
-          const sandboxProvider = this.sandboxProviderFactory.createByName(
-            activeSession.provider as SandboxProvider,
-          );
+        dayjs().diff(dayjs(activeSession.created_at), "millisecond") >= 2 * 60 * 1000;
 
-          await sandboxProvider.down(activeSession.instance_id);
-        }
+      const engineChanged = activeSession.engine !== engine;
 
-        await this.sandboxSessionRepository.update(
-          { id: activeSession.id },
-          { status: SandboxStatus.ERROR },
-        );
+      if (timedOut || engineChanged) {
+        await this.stopSession(activeSession);
       } else {
         return {
           status: true,
