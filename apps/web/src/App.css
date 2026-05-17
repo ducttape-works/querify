@@ -154,6 +154,23 @@
   transition: rotate 150ms ease;
 }
 
+.github-link {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-family: var(--sans);
+  color: var(--text-muted);
+  text-decoration: none;
+  padding: 4px 8px;
+  border-radius: 5px;
+}
+
+.github-link:hover {
+  color: var(--text);
+  background: var(--surface-2);
+}
+
 .run-btn {
   display: flex;
   align-items: center;

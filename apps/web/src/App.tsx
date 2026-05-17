@@ -300,6 +300,14 @@ export default function App() {
         </div>
 
         <div className="topbar-right">
+          <a
+            href="https://github.com/ducttape-works/querify"
+            target="_blank"
+            rel="noreferrer"
+            className="github-link"
+          >
+            ★ Star on GitHub
+          </a>
           {view === "playground" && <button
             className="run-btn"
             disabled={
