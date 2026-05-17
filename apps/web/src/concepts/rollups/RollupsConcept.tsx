@@ -72,7 +72,7 @@ type RangeOption = {
 const RANGE_OPTIONS: RangeOption[] = [
   {
     label: "Last 30 seconds",
-    description: "High resolution needed — very recent data",
+    description: "High resolution needed, very recent data",
     tier: "raw",
     reason:
       "A 30-second window needs sub-minute precision. Only the raw 15-second data can answer this accurately.",
@@ -82,7 +82,7 @@ const RANGE_OPTIONS: RangeOption[] = [
     description: "Recent trend view",
     tier: "1min",
     reason:
-      "10 minutes of data. The 1-minute rollup has exactly the right resolution — raw data would return 40 rows, rollup returns 10. Same answer, less I/O.",
+      "10 minutes of data. The 1-minute rollup has exactly the right resolution, raw data would return 40 rows, rollup returns 10. Same answer, less I/O.",
   },
   {
     label: "Last 2 hours",
@@ -145,7 +145,7 @@ CREATE MATERIALIZED VIEW metrics_5min
       return `-- Last 30 s → raw tier (sub-minute resolution needed)
 SELECT ts, value
 FROM metrics
-WHERE ts >= now() - interval '30 seconds'
+WHERE ts >= now(), interval '30 seconds'
 ORDER BY ts DESC;`;
     }
     if (selectedRange.tier === "1min") {
@@ -153,14 +153,14 @@ ORDER BY ts DESC;`;
 -- (40 raw rows → 10 rollup rows, same result)
 SELECT bucket, avg, min, max
 FROM metrics_1min
-WHERE bucket >= now() - interval '10 minutes'
+WHERE bucket >= now(), interval '10 minutes'
 ORDER BY bucket DESC;`;
     }
     return `-- Last 2 h → 5-minute rollup
 -- (480 raw rows → 24 rollup rows, same trend)
 SELECT bucket, avg, min, max, count
 FROM metrics_5min
-WHERE bucket >= now() - interval '2 hours'
+WHERE bucket >= now(), interval '2 hours'
 ORDER BY bucket DESC;`;
   }
 
@@ -354,7 +354,7 @@ ORDER BY bucket DESC;`;
             <p>
               A rollup is a pre-computed summary of raw data at a lower resolution. Instead of storing
               every 15-second sample, you compute and store the average, min, and max per minute. A query
-              for "last hour" reads 60 rollup rows instead of 240 raw rows — same answer, far less I/O.
+              for "last hour" reads 60 rollup rows instead of 240 raw rows, same answer, far less I/O.
             </p>
           </div>
           <div className="concept-sidebar-section">
@@ -368,7 +368,7 @@ ORDER BY bucket DESC;`;
               <li>Keep 5-minute rollups for 1 year</li>
             </ul>
             <p style={{ marginTop: 6 }}>
-              Older queries automatically use a lower-resolution tier — saving storage and speeding up reads.
+              Older queries automatically use a lower-resolution tier, saving storage and speeding up reads.
             </p>
           </div>
           <div className="concept-sidebar-section">

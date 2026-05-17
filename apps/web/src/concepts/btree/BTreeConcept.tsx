@@ -357,7 +357,7 @@ export function BTreeConcept() {
             </div>
             <p>
               With 1 million rows, scanning takes 1 million steps. A B-tree
-              takes about <strong>20</strong> — because each level cuts the
+              takes about <strong>20</strong>, because each level cuts the
               remaining rows in half.
             </p>
           </div>
@@ -366,7 +366,7 @@ export function BTreeConcept() {
             <div className="concept-sidebar-label">When a node fills up</div>
             <p>
               Each node holds a limited number of keys. When it's full and a new
-              value arrives, it <strong>splits</strong> — the middle key moves
+              value arrives, it <strong>splits</strong>, the middle key moves
               up and two smaller nodes replace it. This keeps the tree balanced.
             </p>
           </div>

@@ -78,12 +78,12 @@ function DataModelTab() {
   return (
     <div className="ts2-section">
       <IntroCard
-        what="A time-series database records every measurement over time. Unlike a regular database that stores only the latest state of a record, a TSDB keeps every reading — the history itself is the data."
-        why="You can ask questions like 'what was CPU usage last Tuesday at 3am?' or 'show me the 99th percentile over the last 30 days' — impossible with a database that only stores the current value."
+        what="A time-series database records every measurement over time. Unlike a regular database that stores only the latest state of a record, a TSDB keeps every reading, the history itself is the data."
+        why="You can ask questions like 'what was CPU usage last Tuesday at 3am?' or 'show me the 99th percentile over the last 30 days', impossible with a database that only stores the current value."
       />
 
       <div className="ts2-sample-card">
-        <div className="ts2-sample-title">Every measurement is stored as a sample — a single data point</div>
+        <div className="ts2-sample-title">Every measurement is stored as a sample, a single data point</div>
         <div className="ts2-sample-json">
           <div className="ts2-json-line"><span className="ts2-json-brace">{"{"}</span></div>
           {[
@@ -102,7 +102,7 @@ function DataModelTab() {
             <span className="ts2-json-key">"tags"</span>
             <span className="ts2-json-colon">: </span>
             <span className="ts2-json-brace">{"{"}</span>
-            <span className="ts2-json-note">labels describing where/who — used for filtering and grouping</span>
+            <span className="ts2-json-note">labels describing where/who, used for filtering and grouping</span>
           </div>
           <div className="ts2-json-line ts2-json-indent2">
             <span className="ts2-json-key">"host"</span>
@@ -122,7 +122,7 @@ function DataModelTab() {
       <div className="ts2-window-section">
         <div className="ts2-window-header">
           <div>
-            <div className="ts2-window-title">Time windows — grouping samples into buckets</div>
+            <div className="ts2-window-title">Time windows, grouping samples into buckets</div>
             <div className="ts2-window-subtitle">
               Raw samples arrive every 15s. Queries group them: "give me 1 average per minute" instead of 4 raw points.
             </div>
@@ -155,7 +155,7 @@ function DataModelTab() {
         </div>
       </div>
 
-      <div className="ts2-card-label">Cardinality — how many unique time series exist</div>
+      <div className="ts2-card-label">Cardinality, how many unique time series exist</div>
       <div className="ts2-card-sublabel">
         Each unique combination of metric + tags = 1 time series. Toggle dimensions to see how the total grows.
       </div>
@@ -188,7 +188,7 @@ function DataModelTab() {
               <div className="ts2-dim-count">
                 {dim.count >= 10000 ? `${dim.count.toLocaleString()}+ unique values` : `${dim.count} unique values`}
               </div>
-              {dim.high && <div className="ts2-dim-warn">⚠ unbounded — grows forever</div>}
+              {dim.high && <div className="ts2-dim-warn">⚠ unbounded, grows forever</div>}
             </button>
           );
         })}
@@ -214,7 +214,7 @@ function DataModelTab() {
         </div>
         {isHigh && (
           <div className="ts2-warn-box">
-            ⚠ High cardinality — {total.toLocaleString()} separate series means {total.toLocaleString()} index entries and memory chunks. Never use values that grow without bound (user IDs, request IDs) as tags.
+            ⚠ High cardinality, {total.toLocaleString()} separate series means {total.toLocaleString()} index entries and memory chunks. Never use values that grow without bound (user IDs, request IDs) as tags.
           </div>
         )}
       </div>
@@ -257,18 +257,18 @@ type ScanStep = {
 function buildMetricRowSteps(): ScanStep[] {
   const steps: ScanStep[] = [];
   for (let r = 0; r < METRIC_ROWS.length; r++) {
-    steps.push({ activeRow: r, fetchRow: -1, matchedRows: [], phase: "scan", bytesRead: (r + 1) * METRIC_COLS.length * 8, message: `Reading row ${r + 1}: loads ts + value + host + region from disk — but only value is needed. 3 columns wasted.` });
+    steps.push({ activeRow: r, fetchRow: -1, matchedRows: [], phase: "scan", bytesRead: (r + 1) * METRIC_COLS.length * 8, message: `Reading row ${r + 1}: loads ts + value + host + region from disk, but only value is needed. 3 columns wasted.` });
   }
-  steps.push({ activeRow: -1, fetchRow: -1, matchedRows: [], phase: "done", bytesRead: METRIC_ROWS.length * METRIC_COLS.length * 8, message: `Done. Read ${METRIC_ROWS.length * METRIC_COLS.length * 8}B — but only ${METRIC_ROWS.length * 8}B was actually needed. Row store read ${METRIC_COLS.length}× too much.` });
+  steps.push({ activeRow: -1, fetchRow: -1, matchedRows: [], phase: "done", bytesRead: METRIC_ROWS.length * METRIC_COLS.length * 8, message: `Done. Read ${METRIC_ROWS.length * METRIC_COLS.length * 8}B, but only ${METRIC_ROWS.length * 8}B was actually needed. Row store read ${METRIC_COLS.length}× too much.` });
   return steps;
 }
 
 function buildMetricColSteps(): ScanStep[] {
   const steps: ScanStep[] = [];
   for (let r = 0; r < METRIC_ROWS.length; r++) {
-    steps.push({ activeRow: r, fetchRow: -1, matchedRows: [], phase: "scan", bytesRead: (r + 1) * 8, message: `Reading value[${r + 1}] = ${METRIC_ROWS[r].value}. The ts, host, region columns are stored separately on disk — not opened.` });
+    steps.push({ activeRow: r, fetchRow: -1, matchedRows: [], phase: "scan", bytesRead: (r + 1) * 8, message: `Reading value[${r + 1}] = ${METRIC_ROWS[r].value}. The ts, host, region columns are stored separately on disk, not opened.` });
   }
-  steps.push({ activeRow: -1, fetchRow: -1, matchedRows: [], phase: "done", bytesRead: METRIC_ROWS.length * 8, message: `Done. Read only ${METRIC_ROWS.length * 8}B — exactly what was needed. ${METRIC_COLS.length}× less I/O than the row store.` });
+  steps.push({ activeRow: -1, fetchRow: -1, matchedRows: [], phase: "done", bytesRead: METRIC_ROWS.length * 8, message: `Done. Read only ${METRIC_ROWS.length * 8}B, exactly what was needed. ${METRIC_COLS.length}× less I/O than the row store.` });
   return steps;
 }
 
@@ -278,7 +278,7 @@ function buildLogRowSteps(): ScanStep[] {
   for (let r = 0; r < LOG_ROWS.length; r++) {
     const isMatch = LOG_ROWS[r].level === "error";
     if (isMatch) matched.push(r);
-    steps.push({ activeRow: r, fetchRow: -1, matchedRows: [...matched], phase: "scan", bytesRead: (r + 1) * LOG_COLS.length * 8, message: isMatch ? `Row ${r + 1}: level = "error" — match! But we still had to read the full row to check.` : `Row ${r + 1}: level = "${LOG_ROWS[r].level}" — no match. Full row loaded just to discard it.` });
+    steps.push({ activeRow: r, fetchRow: -1, matchedRows: [...matched], phase: "scan", bytesRead: (r + 1) * LOG_COLS.length * 8, message: isMatch ? `Row ${r + 1}: level = "error", match! But we still had to read the full row to check.` : `Row ${r + 1}: level = "${LOG_ROWS[r].level}", no match. Full row loaded just to discard it.` });
   }
   steps.push({ activeRow: -1, fetchRow: -1, matchedRows: [...matched], phase: "done", bytesRead: LOG_ROWS.length * LOG_COLS.length * 8, message: `Done. Read all ${LOG_ROWS.length * LOG_COLS.length * 8}B to find ${matched.length} errors. Every non-matching message column was loaded for nothing.` });
   return steps;
@@ -290,11 +290,11 @@ function buildLogColSteps(): ScanStep[] {
   for (let r = 0; r < LOG_ROWS.length; r++) {
     const isMatch = LOG_ROWS[r].level === "error";
     if (isMatch) matched.push(r);
-    steps.push({ activeRow: r, fetchRow: -1, matchedRows: [...matched], phase: "scan", bytesRead: (r + 1) * 8, message: isMatch ? `level[${r + 1}] = "error" — match. Row marked for later fetch. ts and message not read yet.` : `level[${r + 1}] = "${LOG_ROWS[r].level}" — skip. ts and message never opened for this row.` });
+    steps.push({ activeRow: r, fetchRow: -1, matchedRows: [...matched], phase: "scan", bytesRead: (r + 1) * 8, message: isMatch ? `level[${r + 1}] = "error", match. Row marked for later fetch. ts and message not read yet.` : `level[${r + 1}] = "${LOG_ROWS[r].level}", skip. ts and message never opened for this row.` });
   }
   for (let i = 0; i < matched.length; i++) {
     const r = matched[i];
-    steps.push({ activeRow: -1, fetchRow: r, matchedRows: [...matched], phase: "fetch", bytesRead: LOG_ROWS.length * 8 + (i + 1) * 2 * 8, message: `Late fetch — reading ts and message for row ${r + 1}. Only matched rows pay this cost.` });
+    steps.push({ activeRow: -1, fetchRow: r, matchedRows: [...matched], phase: "fetch", bytesRead: LOG_ROWS.length * 8 + (i + 1) * 2 * 8, message: `Late fetch, reading ts and message for row ${r + 1}. Only matched rows pay this cost.` });
   }
   const totalBytes = LOG_ROWS.length * 8 + matched.length * 2 * 8;
   steps.push({ activeRow: -1, fetchRow: -1, matchedRows: [...matched], phase: "done", bytesRead: totalBytes, message: `Done. Scanned level (${LOG_ROWS.length * 8}B) + fetched ts+message for ${matched.length} rows (${matched.length * 16}B) = ${totalBytes}B total vs ${LOG_ROWS.length * LOG_COLS.length * 8}B row store.` });
@@ -383,7 +383,7 @@ function StorageTab() {
     <div className="ts2-section">
       <IntroCard
         what="Databases physically store data in one of two layouts: row-oriented (all columns of a row stored together) or column-oriented (all values of one column stored together)."
-        why="Time-series queries almost always read one column (the value) across millions of rows. A column store reads only the column you asked for — a row store reads every column even when you only need one."
+        why="Time-series queries almost always read one column (the value) across millions of rows. A column store reads only the column you asked for, a row store reads every column even when you only need one."
       />
       <div className="ts2-storage-pickers">
         <div>
@@ -403,15 +403,15 @@ function StorageTab() {
       </div>
       <div className="ts2-layout-legend">
         {mode === "row"
-          ? <span className="ts2-legend-row">Row store — each row stored together. Reading any column means loading the whole row.</span>
-          : <span className="ts2-legend-col">Column store — each column stored together. Reading one column never touches the others.</span>}
+          ? <span className="ts2-legend-row">Row store, each row stored together. Reading any column means loading the whole row.</span>
+          : <span className="ts2-legend-col">Column store, each column stored together. Reading one column never touches the others.</span>}
       </div>
       <code className="ts2-query-badge">{sqlLabel}</code>
       {mode === "col" && query === "filter" && (
         <div className="ts2-phase-strip">
-          <span className={`ts2-phase-badge${current?.phase === "scan" ? " active" : current?.phase === "fetch" || current?.phase === "done" ? " done" : ""}`}>Phase 1 — scan the filter column only</span>
+          <span className={`ts2-phase-badge${current?.phase === "scan" ? " active" : current?.phase === "fetch" || current?.phase === "done" ? " done" : ""}`}>Phase 1, scan the filter column only</span>
           <span className="ts2-phase-arrow">→</span>
-          <span className={`ts2-phase-badge${current?.phase === "fetch" ? " active" : current?.phase === "done" ? " done" : ""}`}>Phase 2 — fetch other columns for matched rows only</span>
+          <span className={`ts2-phase-badge${current?.phase === "fetch" ? " active" : current?.phase === "done" ? " done" : ""}`}>Phase 2, fetch other columns for matched rows only</span>
         </div>
       )}
       <div className="ts2-table-wrap">
@@ -448,16 +448,16 @@ function StorageTab() {
 
 const SIDEBAR: Record<TSTab, { label: string; body: string }[]> = {
   datamodel: [
-    { label: "What is a time-series database?", body: "A normal database stores the current state of things. A time-series database stores every historical measurement. Every reading is kept — the entire history is queryable." },
+    { label: "What is a time-series database?", body: "A normal database stores the current state of things. A time-series database stores every historical measurement. Every reading is kept, the entire history is queryable." },
     { label: "What is a sample?", body: "One data point: a timestamp (when), a metric name (what you measured), a numeric value (the measurement), and tags (labels that describe where or who). Think of it like a log entry with a value attached." },
-    { label: "What are tags, and why do they matter?", body: "Tags are key-value labels attached to each sample — like `host=web-01` or `region=us-east`. They let you filter and group data. `cpu_usage{host=web-01}` is a different series than `cpu_usage{host=web-02}`." },
-    { label: "What is cardinality?", body: "The total number of unique time series in your database. One series per unique tag combination. 3 regions × 4 hosts = 12 series. Add a `user_id` tag with 100,000 users and you have 1.2 million series — a cardinality explosion." },
-    { label: "What is a time window?", body: "`GROUP BY time(1m)` splits the timeline into 1-minute buckets. All samples inside each bucket are collapsed into one value (AVG, SUM, MAX). Dashboards use this — you don't need 4 raw points per second on a 7-day chart." },
+    { label: "What are tags, and why do they matter?", body: "Tags are key-value labels attached to each sample, like `host=web-01` or `region=us-east`. They let you filter and group data. `cpu_usage{host=web-01}` is a different series than `cpu_usage{host=web-02}`." },
+    { label: "What is cardinality?", body: "The total number of unique time series in your database. One series per unique tag combination. 3 regions × 4 hosts = 12 series. Add a `user_id` tag with 100,000 users and you have 1.2 million series, a cardinality explosion." },
+    { label: "What is a time window?", body: "`GROUP BY time(1m)` splits the timeline into 1-minute buckets. All samples inside each bucket are collapsed into one value (AVG, SUM, MAX). Dashboards use this, you don't need 4 raw points per second on a 7-day chart." },
   ],
   storage: [
     { label: "What is a row store?", body: "Saves all columns of a row next to each other on disk: (ts, value, host, region) all in one block. Great for 'give me all the data for row #42'. Inefficient for 'give me only the value column for all 10 million rows'." },
-    { label: "What is a column store?", body: "Saves all values of one column next to each other: all timestamps together, all values together. Reading just the value column means reading a dense block of numbers — nothing else loaded from disk." },
-    { label: "Why does this matter for time-series data?", body: "`SELECT AVG(value)` only needs the value column. In a column store, this reads exactly those values — no timestamps, no host names. For millions of rows, this can be 4–10× less I/O than a row store." },
+    { label: "What is a column store?", body: "Saves all values of one column next to each other: all timestamps together, all values together. Reading just the value column means reading a dense block of numbers, nothing else loaded from disk." },
+    { label: "Why does this matter for time-series data?", body: "`SELECT AVG(value)` only needs the value column. In a column store, this reads exactly those values, no timestamps, no host names. For millions of rows, this can be 4–10× less I/O than a row store." },
     { label: "What is late materialization?", body: "When filtering (WHERE level = 'error'), a column store first scans only the filter column to find matching row numbers. Then it fetches the other columns only for those matching rows. Rows that don't match never have their columns loaded." },
   ],
 };

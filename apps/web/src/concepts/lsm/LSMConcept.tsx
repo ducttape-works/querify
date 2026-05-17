@@ -169,7 +169,7 @@ export function LSMConcept() {
           <div className="concept-sidebar-section">
             <div className="concept-sidebar-label">How it works</div>
             <p>
-              Every write goes to the <strong>MemTable</strong> — an in-memory
+              Every write goes to the <strong>MemTable</strong>, an in-memory
               sorted structure. Reads and writes are fast because everything stays
               in RAM.
             </p>
@@ -179,7 +179,7 @@ export function LSMConcept() {
             <div className="concept-sidebar-label">When MemTable fills up</div>
             <p>
               It gets <strong>flushed</strong> to disk as an{" "}
-              <strong>SSTable</strong> — a sorted, immutable file. These pile up
+              <strong>SSTable</strong>, a sorted, immutable file. These pile up
               in L0. When L0 has too many, they get{" "}
               <strong>compacted</strong> into L1 via merge sort.
             </p>
@@ -200,7 +200,7 @@ export function LSMConcept() {
             <p>
               LSM is the storage engine behind <strong>RocksDB</strong>,{" "}
               <strong>Cassandra</strong>, <strong>LevelDB</strong>, and{" "}
-              <strong>ScyllaDB</strong>. It excels at high write throughput —
+              <strong>ScyllaDB</strong>. It excels at high write throughput -
               every write is sequential (append-only), which is fast on SSDs and
               spinning disks.
             </p>
@@ -210,18 +210,18 @@ export function LSMConcept() {
             <div className="concept-sidebar-label">Try it</div>
             <ul className="concept-tips">
               <li>
-                Insert <code>65</code> then <code>70</code> — the MemTable fills
+                Insert <code>65</code> then <code>70</code>, the MemTable fills
                 and flushes to L0 SSTable 3
               </li>
               <li>
-                That triggers <strong>compaction</strong> — watch L0 collapse
+                That triggers <strong>compaction</strong>, watch L0 collapse
                 into L1
               </li>
               <li>
-                Search <code>3</code> — it's in L1 after compaction
+                Search <code>3</code>, it's in L1 after compaction
               </li>
               <li>
-                Search <code>99</code> — watch it check every level and come up
+                Search <code>99</code>, watch it check every level and come up
                 empty
               </li>
             </ul>

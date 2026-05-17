@@ -33,7 +33,7 @@ function subtreeW(node: BTreeNode): number {
 function buildLayout(node: BTreeNode, x: number, y: number, out: Pos[]) {
   const sw = subtreeW(node);
   const nw = nodeW(node);
-  out.push({ node, x: x + (sw - nw) / 2, y, w: nw });
+  out.push({ node, x: x + (sw, nw) / 2, y, w: nw });
 
   if (!node.isLeaf && node.children.length) {
     let cx = x;

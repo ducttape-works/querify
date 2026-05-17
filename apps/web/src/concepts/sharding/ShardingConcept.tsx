@@ -46,9 +46,9 @@ function runQuery(queryType: QueryType, queryId: number, idxMode: IdxMode): Quer
     return {
       steps: [
         "Coordinator receives: SELECT * FROM orders WHERE date BETWEEN '2024-01-01' AND '2024-01-15'",
-        "Coordinator checks the shard ranges — date is the shard key",
+        "Coordinator checks the shard ranges, date is the shard key",
         "Jan 1–15 falls inside Shard 1 (Jan–Mar). Shards 2 and 3 are outside the range.",
-        "Coordinator routes query to Shard 1 only — Shards 2 and 3 are pruned.",
+        "Coordinator routes query to Shard 1 only, Shards 2 and 3 are pruned.",
         "Shard 1 returns: id=1 (Jan 5, Alice, $120)",
         "Total: 1 shard read, 2 shards pruned",
       ],
@@ -72,7 +72,7 @@ function runQuery(queryType: QueryType, queryId: number, idxMode: IdxMode): Quer
           ? `Index entry found: key=${queryId} → (Shard ${targetShard}, row ${targetOrder.id % 4})`
           : `Key=${queryId} not found in global index`,
         targetOrder
-          ? `Coordinator routes directly to Shard ${targetShard} — other shards are skipped`
+          ? `Coordinator routes directly to Shard ${targetShard}, other shards are skipped`
           : "No rows returned",
         ...(targetOrder
           ? [
@@ -98,7 +98,7 @@ function runQuery(queryType: QueryType, queryId: number, idxMode: IdxMode): Quer
         "Shard 1: searches local B-tree for key=" + queryId + " → not found",
         "Shard 2: searches local B-tree for key=" + queryId + " → not found",
         "Shard 3: searches local B-tree for key=" + queryId + " → not found",
-        "All shards return empty — id not found",
+        "All shards return empty, id not found",
       ],
       accessedShards: [1, 2, 3],
       prunedShards: [],
@@ -118,7 +118,7 @@ function runQuery(queryType: QueryType, queryId: number, idxMode: IdxMode): Quer
     ],
     accessedShards: [1, 2, 3],
     prunedShards: [],
-    result: `1 row (id=${targetOrder.id}, ${targetOrder.customer}). All 3 shards were queried — no pruning possible with local index on a non-shard key.`,
+    result: `1 row (id=${targetOrder.id}, ${targetOrder.customer}). All 3 shards were queried, no pruning possible with local index on a non-shard key.`,
   };
 }
 
@@ -134,12 +134,12 @@ export function ShardingConcept() {
       return `-- Range partition by date (PostgreSQL)\nCREATE TABLE orders (\n  id       INT,\n  date     DATE,\n  customer TEXT,\n  amount   NUMERIC\n) PARTITION BY RANGE (date);\n\nCREATE TABLE orders_q1 PARTITION OF orders\n  FOR VALUES FROM ('2024-01-01') TO ('2024-04-01');\n\nCREATE TABLE orders_q2 PARTITION OF orders\n  FOR VALUES FROM ('2024-04-01') TO ('2024-07-01');\n\nCREATE TABLE orders_q3 PARTITION OF orders\n  FOR VALUES FROM ('2024-07-01') TO ('2024-10-01');`;
     }
     if (queryType === "daterange") {
-      return `-- Date range query — coordinator prunes shards\nSELECT * FROM orders\nWHERE date BETWEEN '2024-01-01' AND '2024-01-15';\n\n-- Execution plan shows partition pruning\nEXPLAIN SELECT * FROM orders\n  WHERE date BETWEEN '2024-01-01' AND '2024-01-15';\n-- Partitions Pruned: orders_q2, orders_q3\n-- Seq Scan on orders_q1 (only Shard 1 accessed)`;
+      return `-- Date range query, coordinator prunes shards\nSELECT * FROM orders\nWHERE date BETWEEN '2024-01-01' AND '2024-01-15';\n\n-- Execution plan shows partition pruning\nEXPLAIN SELECT * FROM orders\n  WHERE date BETWEEN '2024-01-01' AND '2024-01-15';\n-- Partitions Pruned: orders_q2, orders_q3\n-- Seq Scan on orders_q1 (only Shard 1 accessed)`;
     }
     if (idxMode === "global") {
       return `-- Global index lookup (non-shard key)\nSELECT * FROM orders WHERE id = ${queryId};\n\n-- Global index maps key → (shard, row)\nEXPLAIN SELECT * FROM orders WHERE id = ${queryId};\n-- Index Scan on global_idx_orders_id\n-- Coordinator routes to exactly 1 shard\n\n-- Maintain global index on write:\nCREATE UNIQUE INDEX global_idx_orders_id ON orders (id);`;
     }
-    return `-- Local index lookup (non-shard key)\nSELECT * FROM orders WHERE id = ${queryId};\n\n-- No global index — coordinator broadcasts\nEXPLAIN SELECT * FROM orders WHERE id = ${queryId};\n-- Parallel scan across all 3 shards\n-- Each shard searches its local B-tree\n-- Results merged at coordinator\n\n-- Local indexes (one per shard):\nCREATE INDEX ON orders_q1 (id);\nCREATE INDEX ON orders_q2 (id);\nCREATE INDEX ON orders_q3 (id);`;
+    return `-- Local index lookup (non-shard key)\nSELECT * FROM orders WHERE id = ${queryId};\n\n-- No global index, coordinator broadcasts\nEXPLAIN SELECT * FROM orders WHERE id = ${queryId};\n-- Parallel scan across all 3 shards\n-- Each shard searches its local B-tree\n-- Results merged at coordinator\n\n-- Local indexes (one per shard):\nCREATE INDEX ON orders_q1 (id);\nCREATE INDEX ON orders_q2 (id);\nCREATE INDEX ON orders_q3 (id);`;
   }
 
   const shardRows = ORDERS.reduce(
@@ -280,7 +280,7 @@ export function ShardingConcept() {
 
                   {idxMode === "global" && (
                     <div className="sh-global-idx">
-                      <div className="sh-global-idx-head">Global Index (id) — spans all shards</div>
+                      <div className="sh-global-idx-head">Global Index (id), spans all shards</div>
                       <div className="sh-global-idx-entries">
                         {ORDERS.map((o) => (
                           <div key={o.id} className="sh-global-idx-entry">
@@ -374,7 +374,7 @@ export function ShardingConcept() {
             <div className="concept-sidebar-label">What is Sharding?</div>
             <p>
               Sharding (also called horizontal partitioning) splits one large table across multiple
-              independent databases — called shards. Each shard holds a different subset of rows.
+              independent databases, called shards. Each shard holds a different subset of rows.
               No single machine needs to hold all the data.
             </p>
           </div>
@@ -382,8 +382,8 @@ export function ShardingConcept() {
             <div className="concept-sidebar-label">What is a Shard Key?</div>
             <p>
               The shard key is the column used to decide which shard a row belongs to. Here,
-              the shard key is <code>date</code> — rows from Jan–Mar go to Shard 1, Apr–Jun to Shard 2, and so on.
-              Choosing a good shard key is critical — a bad key causes some shards to be much larger than others
+              the shard key is <code>date</code>, rows from Jan–Mar go to Shard 1, Apr–Jun to Shard 2, and so on.
+              Choosing a good shard key is critical, a bad key causes some shards to be much larger than others
               (called hot spots).
             </p>
           </div>
@@ -392,19 +392,19 @@ export function ShardingConcept() {
             <p>
               When a query filters on the shard key, the coordinator can skip shards that cannot possibly
               contain matching rows. This is called shard pruning. A date range query on a date-sharded table
-              only touches the relevant shards — everything else is ignored completely.
+              only touches the relevant shards, everything else is ignored completely.
             </p>
           </div>
           <div className="concept-sidebar-section">
             <div className="concept-sidebar-label">Global vs Local Index</div>
             <p>
-              A <strong>global index</strong> spans all shards — it maps any key directly to the shard and
+              A <strong>global index</strong> spans all shards, it maps any key directly to the shard and
               row that holds it. Fast for non-shard-key lookups, but the index itself must be maintained
               across shards on every write.
             </p>
             <p style={{ marginTop: 6 }}>
               A <strong>local index</strong> lives on each shard independently and only covers rows in that shard.
-              Simpler to maintain, but a query on a non-shard key must be sent to all shards — they all search
+              Simpler to maintain, but a query on a non-shard key must be sent to all shards, they all search
               their local index in parallel.
             </p>
           </div>
