@@ -31,7 +31,7 @@ export const globalErrorHandler = (
       ? error.message
       : "An unexpected error occurred. Please try again later";
 
-  console.error(`[ERROR] ${error.message}\n${error.stack}`);
+  console.error(`[ERROR] ${error.message} || ${error.stack}`);
 
   const resData = error instanceof AppError ? error.resData : {};
 
