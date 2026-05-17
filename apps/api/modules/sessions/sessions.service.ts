@@ -11,6 +11,7 @@ import { sandboxSchemaQueryMap } from "@modules/sandbox/providers/schema-query-m
 import { sandboxOutputParserMap } from "@modules/sandbox/providers/output-parser-map";
 import { SandboxSessionRepository, UserRepository } from "@repositories/index";
 import { cleanQuery } from "@common/utils/any";
+import { EncryptionService } from "@common/services/encryption.service";
 import type { SandboxSessionModelType } from "@models/sandbox-session.model";
 
 @injectable()
@@ -20,6 +21,7 @@ export class SessionService {
     private readonly sandboxSessionRepository: SandboxSessionRepository,
     private readonly sessionEventBus: SessionEventBus,
     private readonly sandboxProviderFactory: SandboxProviderFactory,
+    private readonly encryptionService: EncryptionService,
   ) {}
 
   public async createSession(anonymousId: string, engine: string) {
@@ -40,15 +42,34 @@ export class SessionService {
       await this.sandboxSessionRepository.getActiveSessionForUser(user.id);
 
     if (activeSession) {
-      return {
-        status: true,
-        message: "Active session already exists.",
-        data: {
-          id: activeSession.id,
-          engine: activeSession.engine,
-          status: activeSession.status,
-        },
-      };
+      if (
+        activeSession.status === SandboxStatus.SPAWNING &&
+        dayjs().diff(dayjs(activeSession.created_at), "millisecond") >=
+          2 * 60 * 1000
+      ) {
+        if (activeSession.instance_id && activeSession.provider) {
+          const sandboxProvider = this.sandboxProviderFactory.createByName(
+            activeSession.provider as SandboxProvider,
+          );
+
+          await sandboxProvider.down(activeSession.instance_id);
+        }
+
+        await this.sandboxSessionRepository.update(
+          { id: activeSession.id },
+          { status: SandboxStatus.ERROR },
+        );
+      } else {
+        return {
+          status: true,
+          message: "Active session already exists.",
+          data: {
+            id: activeSession.id,
+            engine: activeSession.engine,
+            status: activeSession.status,
+          },
+        };
+      }
     }
 
     const session = await this.sandboxSessionRepository.create({
@@ -91,6 +112,35 @@ export class SessionService {
 
     if (!session) throw new BadRequestError("Session not found.");
 
+    if (
+      session.status === SandboxStatus.SPAWNING &&
+      dayjs().diff(dayjs(session.created_at), "millisecond") >=
+        2 * 60 * 1000
+    ) {
+      if (session.instance_id && session.provider) {
+        const sandboxProvider = this.sandboxProviderFactory.createByName(
+          session.provider as SandboxProvider,
+        );
+
+        await sandboxProvider.down(session.instance_id);
+      }
+
+      await this.sandboxSessionRepository.update(
+        { id: session.id },
+        { status: SandboxStatus.ERROR },
+      );
+
+      return {
+        status: true,
+        message: "Session failed to start.",
+        data: {
+          id: session.id,
+          engine: session.engine,
+          status: SandboxStatus.ERROR,
+        },
+      };
+    }
+
     return {
       status: true,
       message: "Session fetched successfully.",
@@ -119,13 +169,27 @@ export class SessionService {
       engine: session.engine as SupportedEngine,
       database: session.database!,
       username: session.username!,
+      password: this.getSessionPassword(session),
       query: schemaQuery,
     });
 
-    const tables = result.stdout
-      .split("\n")
-      .map((tableName) => tableName.trim())
-      .filter((tableName) => tableName && tableName !== "tablename");
+    const parse = sandboxOutputParserMap[session.engine as SupportedEngine];
+
+    if (!parse) {
+      throw new BadRequestError(
+        `Output parsing not implemented for ${session.engine}`,
+      );
+    }
+
+    const parsed = parse(result.stdout, 0);
+
+    const tables: string[] = [];
+
+    for (const row of parsed.rows) {
+      if (row[0]) {
+        tables.push(row[0]);
+      }
+    }
 
     return {
       status: true,
@@ -148,6 +212,7 @@ export class SessionService {
       engine: session.engine as SupportedEngine,
       database: session.database!,
       username: session.username!,
+      password: this.getSessionPassword(session),
       query: cleanQuery(query, session.engine as SupportedEngine),
     });
 
@@ -206,12 +271,11 @@ export class SessionService {
         engine: session.engine as SupportedEngine,
         database: session.database!,
         username: session.username!,
+        password: this.getSessionPassword(session),
         query,
       });
 
     const out = await exec(`SELECT id FROM products ORDER BY id`);
-
-    console.log("stdoutt >>>", out);
 
     const keys = this.parseTabularRows(out.stdout)
       .map((row) => parseInt(row.id))
@@ -259,5 +323,13 @@ export class SessionService {
 
       return row;
     });
+  }
+
+  private getSessionPassword(session: SandboxSessionModelType) {
+    if (!session.password_ciphertext) {
+      throw new BadRequestError("Session credentials are missing.");
+    }
+
+    return this.encryptionService.decrypt(session.password_ciphertext);
   }
 }

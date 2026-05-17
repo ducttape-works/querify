@@ -5,4 +5,5 @@ export type EngineDockerConfig = {
   username: string;
   memory: string;
   cpus: string;
+  extraArgs?: string[];
 };

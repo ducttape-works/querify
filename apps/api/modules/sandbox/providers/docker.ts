@@ -34,26 +34,7 @@ export class DockerSandboxProvider implements SandboxProvider {
       );
     }
 
-    const adminPassword = randomBytes(24).toString("hex");
-
-    const queryPassword = randomBytes(24).toString("hex");
-
-    const adminUsername = `${baseConfig.username}_admin`;
-
-    const queryUsername = `${baseConfig.username}_runner`;
-
-    const config = {
-      ...baseConfig,
-      adminPassword,
-      queryPassword,
-      adminUsername,
-      queryUsername,
-      environment: [
-        `POSTGRES_DB=${baseConfig.database}`,
-        `POSTGRES_USER=${adminUsername}`,
-        `POSTGRES_PASSWORD=${adminPassword}`,
-      ],
-    };
+    const config = this.buildRuntimeConfig(payload.engine, baseConfig);
 
     const containerName =
       `querify_${payload.engine}_${payload.sessionId}`.toLowerCase();
@@ -61,7 +42,11 @@ export class DockerSandboxProvider implements SandboxProvider {
     await this.ensureImageExists(config.image);
 
     try {
-      const instanceId = await this.startContainer(containerName, config);
+      const instanceId = await this.startContainer(
+        payload.engine,
+        containerName,
+        config,
+      );
 
       await this.prepareInstance(payload.engine, instanceId, config);
 
@@ -121,11 +106,7 @@ export class DockerSandboxProvider implements SandboxProvider {
       );
     }
 
-    return await this.executeCommand([
-      "exec",
-      payload.instanceId,
-      ...resolveCommand(payload),
-    ]);
+    return await this.executeCommand(["exec", ...resolveCommand(payload)]);
   }
 
   public async pruneManagedContainers(): Promise<void> {
@@ -155,6 +136,7 @@ export class DockerSandboxProvider implements SandboxProvider {
   }
 
   private async startContainer(
+    engine: SupportedEngine,
     containerName: string,
     config: EngineDockerConfig & {
       adminUsername: string;
@@ -165,6 +147,7 @@ export class DockerSandboxProvider implements SandboxProvider {
     },
   ) {
     const envs: string[] = [];
+    const securityArgs = this.getContainerSecurityArgs(engine);
 
     for (const value of config.environment) {
       envs.push("--env", value);
@@ -177,14 +160,6 @@ export class DockerSandboxProvider implements SandboxProvider {
       containerName,
       "--label",
       this._internalLabel,
-      "--security-opt",
-      "no-new-privileges:true",
-      "--cap-drop",
-      "ALL",
-      "--cap-add",
-      "SETUID",
-      "--cap-add",
-      "SETGID",
       "--pids-limit",
       "128",
       "--memory",
@@ -193,8 +168,10 @@ export class DockerSandboxProvider implements SandboxProvider {
       config.cpus,
       "--network",
       "none",
+      ...securityArgs,
       ...envs,
       config.image,
+      ...(config.extraArgs ?? []),
     ];
 
     const { stdout } = await this.executeCommand(args);
@@ -218,8 +195,53 @@ export class DockerSandboxProvider implements SandboxProvider {
         await this.waitUntilPostgresReady(instanceId, config);
         await this.configurePostgresQueryRole(instanceId, config);
         return;
+      case SupportedEngine.MYSQL:
+        await this.waitUntilMySqlReady(instanceId, config);
+        await this.configureMySqlQueryUser(instanceId, config);
+        return;
       default:
         return;
+    }
+  }
+
+  private buildRuntimeConfig(
+    engine: SupportedEngine,
+    baseConfig: EngineDockerConfig,
+  ) {
+    const adminPassword = randomBytes(24).toString("hex");
+    const queryPassword = randomBytes(24).toString("hex");
+
+    switch (engine) {
+      case SupportedEngine.POSTGRESQL:
+        return {
+          ...baseConfig,
+          adminUsername: `${baseConfig.username}_admin`,
+          adminPassword,
+          queryUsername: `${baseConfig.username}_runner`,
+          queryPassword,
+          environment: [
+            `POSTGRES_DB=${baseConfig.database}`,
+            `POSTGRES_USER=${baseConfig.username}_admin`,
+            `POSTGRES_PASSWORD=${adminPassword}`,
+          ],
+        };
+      case SupportedEngine.MYSQL:
+        return {
+          ...baseConfig,
+          adminUsername: "root",
+          adminPassword,
+          queryUsername: `${baseConfig.username}_runner`,
+          queryPassword,
+          environment: [
+            `MYSQL_DATABASE=${baseConfig.database}`,
+            `MYSQL_ROOT_PASSWORD=${adminPassword}`,
+          ],
+        };
+      default:
+        throw new AppError(
+          `Docker provider is not implemented for ${engine}.`,
+          StatusCodes.INTERNAL_SERVER_ERROR,
+        );
     }
   }
 
@@ -252,6 +274,65 @@ export class DockerSandboxProvider implements SandboxProvider {
         return;
       } catch {
         await new Promise((resolve) => setTimeout(resolve, delayMs));
+      }
+    }
+
+    throw new AppError(
+      "Sandbox did not become ready within ping window.",
+      StatusCodes.INTERNAL_SERVER_ERROR,
+    );
+  }
+
+  private getContainerSecurityArgs(engine: SupportedEngine) {
+    switch (engine) {
+      case SupportedEngine.MYSQL:
+        return ["--security-opt", "no-new-privileges:true"];
+      default:
+        return [
+          "--security-opt",
+          "no-new-privileges:true",
+          "--cap-drop",
+          "ALL",
+          "--cap-add",
+          "SETUID",
+          "--cap-add",
+          "SETGID",
+        ];
+    }
+  }
+
+  private async waitUntilMySqlReady(
+    instanceId: string,
+    config: EngineDockerConfig & {
+      adminUsername: string;
+      adminPassword: string;
+      queryUsername: string;
+      queryPassword: string;
+      environment: string[];
+    },
+  ) {
+    const maxAttempts = 60;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      try {
+        await this.executeCommand(
+          [
+            "exec",
+            "-e", `MYSQL_PWD=${config.adminPassword}`,
+            instanceId,
+            "mysql",
+            "--connect-timeout=2",
+            "-h", "127.0.0.1",
+            "-u", config.adminUsername,
+            `--database=${config.database}`,
+            "-e", "SELECT 1",
+          ],
+          3000,
+        );
+
+        return;
+      } catch {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       }
     }
 
@@ -307,9 +388,42 @@ export class DockerSandboxProvider implements SandboxProvider {
     ]);
   }
 
-  private async executeCommand(args: string[]) {
+  private async configureMySqlQueryUser(
+    instanceId: string,
+    config: EngineDockerConfig & {
+      adminUsername: string;
+      adminPassword: string;
+      queryUsername: string;
+      queryPassword: string;
+      environment: string[];
+    },
+  ) {
+    const sql = `
+      DROP USER IF EXISTS '${config.queryUsername}'@'%';
+      CREATE USER '${config.queryUsername}'@'%' IDENTIFIED BY '${config.queryPassword}';
+      GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, ALTER, INDEX ON \`${config.database}\`.* TO '${config.queryUsername}'@'%';
+      FLUSH PRIVILEGES;
+    `;
+
+    await this.executeCommand([
+      "exec",
+      "-e",
+      `MYSQL_PWD=${config.adminPassword}`,
+      instanceId,
+      "mysql",
+      "-h",
+      "127.0.0.1",
+      "-u",
+      config.adminUsername,
+      `--database=${config.database}`,
+      "-e",
+      sql,
+    ]);
+  }
+
+  private async executeCommand(args: string[], timeoutMs?: number) {
     try {
-      return await execFileAsync("docker", args);
+      return await execFileAsync("docker", args, timeoutMs ? { timeout: timeoutMs } : {});
     } catch (error) {
       const { stderr = "", message = "Docker command failed." } = error as {
         stderr?: string;

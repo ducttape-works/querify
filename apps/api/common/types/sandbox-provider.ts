@@ -19,7 +19,7 @@ export type SandboxRuntime = {
 export type SandboxQuery = {
   query: string;
   engine: SupportedEngine;
-} & Pick<SandboxRuntime, "instanceId" | "database" | "username">;
+} & Pick<SandboxRuntime, "instanceId" | "database" | "username" | "password">;
 
 export type SandboxExecutionResult = {
   stdout: string;

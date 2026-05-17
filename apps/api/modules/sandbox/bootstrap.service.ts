@@ -10,6 +10,8 @@ const execFileAsync = promisify(execFile);
 
 @injectable()
 export class SandboxBootstrapService {
+  private readonly LOG_PREFIX = "[SANDBOX_BOOTSTRAP_SERVICE]";
+
   public async initialize() {
     const images = Object.values(sandboxEngineConfigMap).map(
       (config) => config.image,
@@ -18,9 +20,16 @@ export class SandboxBootstrapService {
     for (const image of images) {
       const existsLocally = await this.imageExists(image);
 
-      console.log("iMGAE EXISTS =====>", existsLocally);
+      console.log(`${this.LOG_PREFIX}:::initialize Check Image Exists ===>`, {
+        existsLocally,
+        image,
+      });
 
       if (!existsLocally) {
+        console.log(`${this.LOG_PREFIX}:::initialize Pulling Image ===>`, {
+          image,
+        });
+
         await this.pullImage(image);
       }
     }

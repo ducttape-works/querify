@@ -189,9 +189,16 @@ export default function App() {
       setError("");
       setRunningQuery(true);
 
+      const isDDL = /^\s*(create|drop|alter|rename|truncate)\b/i.test(query);
+
       executeSessionQuery(session.id, query)
         .then((nextResult) => {
           setResult(nextResult);
+          if (isDDL) {
+            fetchSessionSchema(session.id)
+              .then((schema) => setTables(schema.tables))
+              .catch(() => {});
+          }
         })
         .catch((err) => {
           setResult(null);
