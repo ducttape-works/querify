@@ -161,7 +161,7 @@ export class DockerSandboxProvider implements SandboxProvider {
       "--label",
       this._internalLabel,
       "--pids-limit",
-      "128",
+      engine === SupportedEngine.CLICKHOUSE ? "0" : "128",
       "--memory",
       config.memory,
       "--cpus",
@@ -322,8 +322,14 @@ export class DockerSandboxProvider implements SandboxProvider {
     switch (engine) {
       case SupportedEngine.MYSQL:
       case SupportedEngine.MONGODB:
-      case SupportedEngine.CLICKHOUSE:
         return ["--security-opt", "no-new-privileges:true"];
+      case SupportedEngine.CLICKHOUSE:
+        return [
+          "--security-opt",
+          "no-new-privileges:true",
+          "--cap-add",
+          "SYS_NICE",
+        ];
       default:
         return [
           "--security-opt",
@@ -355,14 +361,18 @@ export class DockerSandboxProvider implements SandboxProvider {
         await this.executeCommand(
           [
             "exec",
-            "-e", `MYSQL_PWD=${config.adminPassword}`,
+            "-e",
+            `MYSQL_PWD=${config.adminPassword}`,
             instanceId,
             "mysql",
             "--connect-timeout=2",
-            "-h", "127.0.0.1",
-            "-u", config.adminUsername,
+            "-h",
+            "127.0.0.1",
+            "-u",
+            config.adminUsername,
             `--database=${config.database}`,
-            "-e", "SELECT 1",
+            "-e",
+            "SELECT 1",
           ],
           3000,
         );
@@ -478,12 +488,18 @@ export class DockerSandboxProvider implements SandboxProvider {
             instanceId,
             "mongosh",
             "--quiet",
-            "--host", "127.0.0.1",
-            "--port", "27017",
-            "-u", config.adminUsername,
-            "-p", config.adminPassword,
-            "--authenticationDatabase", "admin",
-            "--eval", "db.adminCommand('ping')",
+            "--host",
+            "127.0.0.1",
+            "--port",
+            "27017",
+            "-u",
+            config.adminUsername,
+            "-p",
+            config.adminPassword,
+            "--authenticationDatabase",
+            "admin",
+            "--eval",
+            "db.adminCommand('ping')",
           ],
           3000,
         );
@@ -510,7 +526,7 @@ export class DockerSandboxProvider implements SandboxProvider {
       environment: string[];
     },
   ) {
-    const maxAttempts = 30;
+    const maxAttempts = 60;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
       try {
@@ -519,9 +535,16 @@ export class DockerSandboxProvider implements SandboxProvider {
             "exec",
             instanceId,
             "clickhouse-client",
-            "--user", config.adminUsername,
-            "--password", config.adminPassword,
-            "--query", "SELECT 1",
+            "--host",
+            "127.0.0.1",
+            "--port",
+            "9000",
+            "--user",
+            config.adminUsername,
+            "--password",
+            config.adminPassword,
+            "--query",
+            "SELECT 1",
           ],
           3000,
         );
@@ -552,18 +575,32 @@ export class DockerSandboxProvider implements SandboxProvider {
       "exec",
       instanceId,
       "clickhouse-client",
-      "--user", config.adminUsername,
-      "--password", config.adminPassword,
-      "--query", `CREATE USER IF NOT EXISTS ${config.queryUsername} IDENTIFIED BY '${config.queryPassword}'`,
+      "--host",
+      "127.0.0.1",
+      "--port",
+      "9000",
+      "--user",
+      config.adminUsername,
+      "--password",
+      config.adminPassword,
+      "--query",
+      `CREATE USER IF NOT EXISTS ${config.queryUsername} IDENTIFIED BY '${config.queryPassword}'`,
     ]);
 
     await this.executeCommand([
       "exec",
       instanceId,
       "clickhouse-client",
-      "--user", config.adminUsername,
-      "--password", config.adminPassword,
-      "--query", `GRANT SELECT, INSERT, CREATE TABLE, DROP TABLE, ALTER TABLE, CREATE VIEW, DROP VIEW ON ${config.database}.* TO ${config.queryUsername}`,
+      "--host",
+      "127.0.0.1",
+      "--port",
+      "9000",
+      "--user",
+      config.adminUsername,
+      "--password",
+      config.adminPassword,
+      "--query",
+      `GRANT SELECT, INSERT, CREATE TABLE, DROP TABLE, ALTER TABLE, CREATE VIEW, DROP VIEW ON ${config.database}.* TO ${config.queryUsername}`,
     ]);
   }
 
@@ -584,18 +621,28 @@ export class DockerSandboxProvider implements SandboxProvider {
       instanceId,
       "mongosh",
       "--quiet",
-      "-u", config.adminUsername,
-      "-p", config.adminPassword,
-      "--authenticationDatabase", "admin",
-      "--host", "127.0.0.1",
-      "--port", "27017",
-      "--eval", `try { ${db}.dropUser("${config.queryUsername}"); } catch(e) {} ${db}.createUser({ user: "${config.queryUsername}", pwd: "${config.queryPassword}", roles: [{ role: "readWrite", db: "${config.database}" }] })`,
+      "-u",
+      config.adminUsername,
+      "-p",
+      config.adminPassword,
+      "--authenticationDatabase",
+      "admin",
+      "--host",
+      "127.0.0.1",
+      "--port",
+      "27017",
+      "--eval",
+      `try { ${db}.dropUser("${config.queryUsername}"); } catch(e) {} ${db}.createUser({ user: "${config.queryUsername}", pwd: "${config.queryPassword}", roles: [{ role: "readWrite", db: "${config.database}" }] })`,
     ]);
   }
 
   private async executeCommand(args: string[], timeoutMs?: number) {
     try {
-      return await execFileAsync("docker", args, timeoutMs ? { timeout: timeoutMs } : {});
+      return await execFileAsync(
+        "docker",
+        args,
+        timeoutMs ? { timeout: timeoutMs } : {},
+      );
     } catch (error) {
       const { stderr = "", stdout = "" } = error as {
         stderr?: string;

@@ -61,3 +61,4 @@ rough-ideas.txt
 *.db
 *.db-shm
 *.db-wal
+querify.db

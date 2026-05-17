@@ -39,7 +39,7 @@ export const sandboxEngineConfigMap: Partial<
     containerPort: 9000,
     database: "querify",
     username: "querify",
-    memory: "512m",
-    cpus: "0.5",
+    memory: "1g",
+    cpus: "1.0",
   },
 };
