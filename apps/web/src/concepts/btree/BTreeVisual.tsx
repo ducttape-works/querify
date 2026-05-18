@@ -33,7 +33,7 @@ function subtreeW(node: BTreeNode): number {
 function buildLayout(node: BTreeNode, x: number, y: number, out: Pos[]) {
   const sw = subtreeW(node);
   const nw = nodeW(node);
-  out.push({ node, x: x + (sw, nw) / 2, y, w: nw });
+  out.push({ node, x: x + (sw - nw) / 2, y, w: nw });
 
   if (!node.isLeaf && node.children.length) {
     let cx = x;
@@ -62,7 +62,12 @@ export function BTreeVisual({ step }: { step: BTreeStep }) {
       width={svgW}
       height={svgH}
       viewBox={`0 0 ${svgW} ${svgH}`}
-      style={{ display: "block", overflow: "visible", maxWidth: "100%", height: "auto" }}
+      style={{
+        display: "block",
+        overflow: "visible",
+        maxWidth: "100%",
+        height: "auto",
+      }}
     >
       {positions.flatMap(({ node, x, y }) =>
         node.isLeaf || !node.children.length
