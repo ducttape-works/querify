@@ -419,20 +419,29 @@ export class DockerSandboxProvider implements SandboxProvider {
       ALTER ROLE ${config.queryUsername} SET idle_in_transaction_session_timeout = '5000ms';
     `;
 
-    await this.executeCommand([
-      "exec",
-      instanceId,
-      "psql",
-      "-X",
-      "-v",
-      "ON_ERROR_STOP=1",
-      "-U",
-      config.adminUsername,
-      "-d",
-      config.database,
-      "-c",
-      sql,
-    ]);
+    const maxAttempts = 5;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        await this.executeCommand([
+          "exec",
+          instanceId,
+          "psql",
+          "-X",
+          "-v",
+          "ON_ERROR_STOP=1",
+          "-U",
+          config.adminUsername,
+          "-d",
+          config.database,
+          "-c",
+          sql,
+        ]);
+        return;
+      } catch (error) {
+        if (attempt === maxAttempts) throw error;
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+      }
+    }
   }
 
   private async configureMySqlQueryUser(
