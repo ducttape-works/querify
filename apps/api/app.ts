@@ -37,7 +37,7 @@ export default class Application {
   }
 
   private registerMiddlewares() {
-    this.app.use(cors({ credentials: true, origin: "http://localhost:5173" }));
+    this.app.use(cors({ credentials: true, origin: true }));
     this.app.use(cookieParser());
     this.app.use(express.json());
     this.app.use(express.urlencoded({ extended: true }));
