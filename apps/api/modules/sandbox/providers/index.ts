@@ -16,8 +16,9 @@ export class SandboxProviderFactory {
   create() {
     switch (app.environment) {
       case Environment.DEVELOPMENT:
-        return this.docker;
       case Environment.PRODUCTION:
+        return this.docker;
+      case Environment.LOCAL:
         return this.firecracker;
       default:
         return this.docker;
