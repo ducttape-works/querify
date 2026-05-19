@@ -27,6 +27,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
 }
 
 .logo {
@@ -41,6 +42,7 @@
   display: flex;
   align-items: center;
   gap: 2px;
+  min-width: 0;
 }
 
 .nav-link {
@@ -213,9 +215,18 @@
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.concept-subnav::-webkit-scrollbar {
+  display: none;
 }
 
 .subnav-link {
+  flex: 0 0 auto;
   padding: 3px 10px;
   border: none;
   border-radius: 4px;
@@ -240,6 +251,7 @@
   flex: 1;
   display: flex;
   overflow: hidden;
+  min-height: 0;
 }
 
 .sidebar {
@@ -250,6 +262,7 @@
   border-right: 1px solid var(--border);
   overflow: hidden;
   flex-shrink: 0;
+  min-height: 0;
 }
 
 .sidebar-header {
@@ -333,6 +346,8 @@
   flex-direction: column;
   border-right: 1px solid var(--border);
   overflow: hidden;
+  min-width: 0;
+  min-height: 0;
 }
 
 .output-pane {
@@ -341,6 +356,8 @@
   flex-direction: column;
   overflow: hidden;
   background: var(--surface);
+  min-width: 0;
+  min-height: 0;
 }
 
 .pane-header {
@@ -397,6 +414,7 @@
 .editor-footer {
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
   gap: 12px;
   padding: 10px 14px;
   border-top: 1px solid var(--border);
@@ -455,6 +473,8 @@
 .result-meta {
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
   gap: 12px;
   padding: 10px 14px;
   border-bottom: 1px solid var(--border);
@@ -466,6 +486,7 @@
 .result-table-wrap {
   flex: 1;
   overflow: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .result-table {
@@ -498,20 +519,51 @@
 }
 
 @media (max-width: 960px) {
+  .topbar {
+    height: auto;
+    align-items: flex-start;
+    padding: 10px 12px;
+    gap: 10px;
+  }
+
+  .topbar-left {
+    flex: 1;
+    flex-wrap: wrap;
+    align-items: center;
+    row-gap: 8px;
+  }
+
+  .topbar-right {
+    flex-shrink: 0;
+  }
+
+  .engine-dropdown {
+    min-width: min(170px, calc(100vw - 32px));
+    max-width: min(260px, calc(100vw - 32px));
+  }
+
   .body {
     flex-direction: column;
+    overflow: auto;
   }
 
   .sidebar {
     width: 100%;
-    max-height: 160px;
+    max-height: 180px;
     border-right: none;
     border-bottom: 1px solid var(--border);
   }
 
   .editor-pane {
+    flex: none;
+    min-height: 44svh;
     border-right: none;
     border-bottom: 1px solid var(--border);
+  }
+
+  .output-pane {
+    flex: none;
+    min-height: 28svh;
   }
 
   .editor-footer,
@@ -519,5 +571,109 @@
   .topbar {
     flex-wrap: wrap;
     height: auto;
+  }
+
+  .editor-footer span,
+  .result-meta span {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 720px) {
+  .layout {
+    min-height: 100%;
+  }
+
+  .topbar-left,
+  .topbar-right {
+    width: 100%;
+  }
+
+  .topbar-right {
+    justify-content: space-between;
+  }
+
+  .topbar-nav {
+    order: 2;
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .topbar-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .nav-link,
+  .badge,
+  .github-link,
+  .run-btn {
+    flex: 0 0 auto;
+  }
+
+  .badge-muted {
+    max-width: 100%;
+  }
+
+  .github-link {
+    display: none;
+  }
+
+  .run-btn {
+    justify-content: center;
+  }
+
+  .sidebar {
+    max-height: 150px;
+  }
+
+  .column-item {
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  .column-type {
+    margin-left: auto;
+    text-align: right;
+  }
+
+  .output-message,
+  .empty-output span {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 560px) {
+  .topbar-right {
+    gap: 10px;
+  }
+
+  .engine-picker,
+  .run-btn {
+    width: 100%;
+  }
+
+  .engine-picker .badge,
+  .run-btn {
+    width: 100%;
+  }
+
+  .badge {
+    justify-content: space-between;
+  }
+
+  .engine-dropdown {
+    width: 100%;
+    max-width: none;
+  }
+
+  .editor-pane {
+    min-height: 40svh;
+  }
+
+  .output-pane {
+    min-height: 24svh;
   }
 }
